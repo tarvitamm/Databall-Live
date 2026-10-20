@@ -14,3 +14,15 @@ data/
 .ruff_cache/
 .pytest_cache/
 
+
+
+# Local settings and credentials, never committed
+.env
+.env.*
+!.env.example
+.azure/
+local.settings.json
+*.pem
+*.key
+*.pfx
+*.publishsettings
