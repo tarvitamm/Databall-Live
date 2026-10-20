@@ -77,18 +77,20 @@ def tag_text(kind: str, facts: dict, lang: str, names: Names) -> str:
     return TAGS[kind][lang].format(**localize(facts, lang, names))
 
 
-def tell(drafts: list[Draft], meta: MatchMetadata, langs: tuple[str, ...]) -> list[Variant]:
-    names = Names(meta)
+def render_all(d: Draft, names: Names, langs: tuple[str, ...]) -> list[Variant]:
     out = []
-    for d in drafts:
-        for lang in langs:
-            for persona in PERSONAS:
-                v = render(d, persona, lang, names)
-                if v is not None:
-                    out.append(v)
-        en = render(d, "fan", "en", names)
-        en_analyst = render(d, "analyst", "en", names)
-        d.insight.claim = en.headline if en else ""
-        d.insight.mechanism = en_analyst.body if en_analyst else ""
-        d.insight.consequence = en.body if en else ""
+    for lang in langs:
+        for persona in PERSONAS:
+            v = render(d, persona, lang, names)
+            if v is not None:
+                out.append(v)
     return out
+
+
+def describe(d: Draft, names: Names) -> None:
+    """Fill the insight's canonical English claim, mechanism and consequence."""
+    fan = render(d, "fan", "en", names)
+    analyst = render(d, "analyst", "en", names)
+    d.insight.claim = fan.headline if fan else ""
+    d.insight.mechanism = analyst.body if analyst else ""
+    d.insight.consequence = fan.body if fan else ""

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 from pathlib import Path
 
@@ -90,6 +91,13 @@ def player(match_id: str, player_id: str, period: int = 2, t: float = 1e9) -> di
         "shots": sum(1 for e in events if e["type"] == "shot"),
         "patterns": [{"id": p["id"], "type": p["type"], "period": p["period"], "t": p["t_start"]} for p in mine][-20:],
     }
+
+
+@app.get("/api/matches/{match_id}/crew")
+def crew(match_id: str) -> dict:
+    b = _bundle(match_id)
+    path = b.folder / "crew.json"
+    return json.loads(path.read_text()) if path.exists() else {}
 
 
 @app.get("/api/matches/{match_id}/catchup")

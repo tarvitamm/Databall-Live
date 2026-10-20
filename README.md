@@ -11,7 +11,7 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 | Data contracts (`src/blindside/contracts.py`) | Done: events, tracking, metadata, hidden truth, patterns, insights, overlay packets, viewer profiles |
 | Simulator v1 (`src/blindside/sim`) | Done: 22 agents at 10 Hz, passing, shots, offside, pressing, box marking, clearances, off-ball runs with decoy intent and follow/hold marking choices, fatigue, scripted scenarios |
 | Stats engine (`src/blindside/stats`) | Done for v1: event-based possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing shifts, counter-pressing, recovery runs, line movements, gaps between the lines, overloads, pass difficulty and xG models, speed and distance triggers, fatigue, shot chains, control vs chaos, momentum swings, evaluation against hidden truth |
-| Insight crew (`src/blindside/insights`) | Done with templates: analyst, storyteller (analyst, fan and player focus in English, Spanish and Estonian), verifier, producer with timed overlay packets, half-time and full-time recaps |
+| Insight crew (`src/blindside/insights`) | Done as an Agent Framework workflow, with templates: analyst, storyteller (analyst, fan and player focus in English, Spanish and Estonian), verifier, producer with timed overlay packets, half-time and full-time recaps |
 | Live replay server (`src/blindside/live`) | Done: REST API and a WebSocket that streams tracking frames and each viewer's overlays on the match clock, with seek, speed and live profile changes |
 | Fan app and broadcast overlay (`web`) | Done: animated pitch, lower thirds, player tags, pass and shot cards, run trails, "Why?" replays, control vs chaos, momentum, player focus, catch-up, timeline, English, Spanish and Estonian |
 | Microsoft Foundry, Agent Framework and Azure deployment | After the app |
@@ -56,6 +56,38 @@ uv run python -m blindside.stats.evaluate data/league
 `blindside-analyse` writes `patterns.jsonl` and `metrics.json` next to the match. Retrain the pass and xG models with
 `uv run python -m blindside.stats.train data/league`. The evaluation reads `truth.json` and is the only code
 that does.
+
+## The insight crew
+
+The crew is a Microsoft Agent Framework workflow that runs once per match minute. The router fans patterns out to
+the tactical analyst and the player lens, the editor joins their drafts and drops repeats, the storyteller writes
+every persona and language, the verifier checks each line and sends failures back for a rewrite (falling back to the
+template after three attempts), and the producer schedules what airs. The workflow checkpoints at every superstep.
+
+```mermaid
+flowchart TD
+  moment_router["moment_router (Start)"];
+  tactical_analyst["tactical_analyst"];
+  player_lens["player_lens"];
+  producer["producer"];
+  editor["editor"];
+  storyteller["storyteller"];
+  verifier["verifier"];
+  fan_in__editor__dfe85a92((fan-in))
+  player_lens --> fan_in__editor__dfe85a92;
+  tactical_analyst --> fan_in__editor__dfe85a92;
+  fan_in__editor__dfe85a92 --> editor;
+  moment_router -. conditional .-> tactical_analyst;
+  moment_router -. conditional .-> player_lens;
+  moment_router -. conditional .-> producer;
+  editor --> storyteller;
+  storyteller --> verifier;
+  verifier -. conditional .-> storyteller;
+  verifier -. conditional .-> producer;
+```
+
+Run with `--unreliable 0.3` to make the storyteller misquote numbers and watch the verifier catch them, or with
+`--checkpoints <folder>` to keep checkpoints on disk. `crew.json` records rejections, fallbacks and timings per agent.
 
 ## Generate insights
 
