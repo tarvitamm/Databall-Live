@@ -70,12 +70,20 @@ export function MatchPicker({ s, onPick }: { s: Strings; onPick: (id: string) =>
   )
 }
 
-export function MatchView({ id, profile, onProfile, onBack }: { id: string; profile: Profile; onProfile: (p: Profile) => void; onBack: () => void }) {
+interface MatchViewProps {
+  id: string
+  profile: Profile
+  onProfile: (p: Profile) => void
+  onBack: () => void
+  live?: boolean
+}
+
+export function MatchView({ id, profile, onProfile, onBack, live: isLive = false }: MatchViewProps) {
   const match = useMatch(id)
   const [speed, setSpeed] = useState(1)
   const [why, setWhy] = useState<Packet | null>(null)
   const [catchUp, setCatchUp] = useState(false)
-  const live = useMatchStream(match, profile, speed)
+  const live = useMatchStream(match, profile, speed, isLive)
   const maps = usePitchMaps(match)
   const s = strings(profile.lang)
   if (!match) return <main className="loading">Blindside</main>
@@ -88,8 +96,9 @@ export function MatchView({ id, profile, onProfile, onBack }: { id: string; prof
           Blindside
         </button>
         <ScoreBug match={match} now={live.now} state={live.state} />
-        <Controls match={match} profile={profile} speed={speed} s={s} onProfile={onProfile} onSpeed={setSpeed} onCatchUp={() => setCatchUp(true)} />
-        <Timeline match={match} now={live.now} onSeek={live.seek} />
+        {isLive && <span className="live-badge">{s.live}</span>}
+        <Controls match={match} profile={profile} speed={speed} s={s} onProfile={onProfile} onSpeed={setSpeed} onCatchUp={() => setCatchUp(true)} live={isLive} />
+        {!isLive && <Timeline match={match} now={live.now} onSeek={live.seek} />}
       </header>
       <div className="stage">
         <div className="pitch-wrap">
@@ -97,6 +106,7 @@ export function MatchView({ id, profile, onProfile, onBack }: { id: string; prof
           <Cards cards={live.cards} />
           <LowerThird packet={live.lowerThird} match={match} />
           {live.recap && <RecapPanel packet={live.recap} s={s} onClose={live.dismissRecap} />}
+          {live.waiting && <div className="waiting">{s.waiting}</div>}
         </div>
         <aside className="side">
           <MatchState match={match} state={live.state} s={s} />
@@ -111,9 +121,9 @@ export function MatchView({ id, profile, onProfile, onBack }: { id: string; prof
   )
 }
 
-export function OverlayView({ id, profile }: { id: string; profile: Profile }) {
+export function OverlayView({ id, profile, live: isLive = false }: { id: string; profile: Profile; live?: boolean }) {
   const match = useMatch(id)
-  const live = useMatchStream(match, profile, 1)
+  const live = useMatchStream(match, profile, 1, isLive)
   if (!match) return null
   return (
     <main className="overlay">

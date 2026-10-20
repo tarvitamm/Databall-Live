@@ -285,6 +285,7 @@ def _is(kind: type):
 class Crew:
     workflow: Workflow
     editor: Editor
+    storyteller: Storyteller
     verifier: Verifier
     producer: Producer
     names: Names
@@ -315,7 +316,7 @@ def build_crew(a: Analysis, langs: tuple[str, ...] = LANGS, unreliable: float = 
         .add_edge(verifier, producer, condition=_is(Approved))
         .build()
     )
-    return Crew(workflow, editor, verifier, producer, names)
+    return Crew(workflow, editor, storyteller, verifier, producer, names)
 
 
 def ready_time(p: Pattern) -> float:
@@ -348,25 +349,44 @@ class CrewRun:
     runs: int
 
 
+class Timings:
+    def __init__(self) -> None:
+        self.totals: dict[str, dict[str, float]] = defaultdict(lambda: {"calls": 0, "seconds": 0.0})
+        self.started: dict[str, float] = {}
+
+    def observe(self, event) -> None:
+        if event.type == "executor_invoked":
+            self.started[event.executor_id] = time.perf_counter()
+        elif event.type == "executor_completed" and event.executor_id in self.started:
+            t = self.totals[event.executor_id]
+            t["calls"] += 1
+            t["seconds"] += time.perf_counter() - self.started.pop(event.executor_id)
+
+    def report(self) -> dict[str, dict[str, float]]:
+        return {k: {"calls": v["calls"], "ms": round(1000 * v["seconds"], 1)} for k, v in self.totals.items()}
+
+
+async def run_batch(crew: Crew, batch: MomentBatch, timings: Timings) -> tuple[list[OverlayPacket], list[CrewNote]]:
+    packets: list[OverlayPacket] = []
+    notes: list[CrewNote] = []
+    async for event in crew.workflow.run(batch, stream=True):
+        timings.observe(event)
+        if event.type in ("output", "intermediate"):
+            if isinstance(event.data, PacketBatch):
+                packets += event.data.packets
+            elif isinstance(event.data, CrewNote):
+                notes.append(event.data)
+    return packets, notes
+
+
 async def run_match(crew: Crew, a: Analysis, step_s: float = 60.0) -> CrewRun:
     packets: list[OverlayPacket] = []
     notes: list[CrewNote] = []
-    timings: dict[str, dict[str, float]] = defaultdict(lambda: {"calls": 0, "seconds": 0.0})
-    started: dict[str, float] = {}
+    timings = Timings()
     batches = minute_batches(a, step_s)
     for batch in batches:
-        async for event in crew.workflow.run(batch, stream=True):
-            if event.type == "executor_invoked":
-                started[event.executor_id] = time.perf_counter()
-            elif event.type == "executor_completed" and event.executor_id in started:
-                t = timings[event.executor_id]
-                t["calls"] += 1
-                t["seconds"] += time.perf_counter() - started.pop(event.executor_id)
-            elif event.type in ("output", "intermediate"):
-                if isinstance(event.data, PacketBatch):
-                    packets += event.data.packets
-                elif isinstance(event.data, CrewNote):
-                    notes.append(event.data)
+        new_packets, new_notes = await run_batch(crew, batch, timings)
+        packets += new_packets
+        notes += new_notes
     packets.sort(key=lambda p: (p.period, p.show_at, p.priority))
-    report = {k: {"calls": v["calls"], "ms": round(1000 * v["seconds"], 1)} for k, v in timings.items()}
-    return CrewRun(packets, notes, report, len(batches))
+    return CrewRun(packets, notes, timings.report(), len(batches))

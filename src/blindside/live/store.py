@@ -90,6 +90,20 @@ class MatchStore:
         return bundle
 
 
+def match_state(b: Bundle, period: int, t: float) -> dict:
+    bins = [s for s in b.metrics["state"] if s["period"] < period or (s["period"] == period and s["t_end"] <= t)]
+    last = bins[-1] if bins else None
+    rows = [m for m in b.metrics["momentum"] if m[0] < period or (m[0] == period and m[1] <= t)]
+    return {"label": last["label"] if last else "balanced", "chaos": last["chaos"] if last else 50,
+            "control": last["control"] if last else [50, 50], "momentum": rows[-1][2] if rows else 0.0,
+            "momentum_series": [r[2] for r in rows[-60:]]}
+
+
+def state_message(b: Bundle, period: int, t: float) -> dict:
+    return {"kind": "state", "period": period, "t": t, "score": b.score(period, t), "xg": b.xg(period, t),
+            **match_state(b, period, t)}
+
+
 def frame_message(b: Bundle, k: int) -> dict:
     md = b.md
     pos = np.round(md.pos[k], 2)

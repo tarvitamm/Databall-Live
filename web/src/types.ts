@@ -107,4 +107,4 @@ export interface Profile {
   density: Density
 }
 
-export type ServerMsg = FrameMsg | Packet | StateMsg | { kind: 'hello' | 'end' }
+export type ServerMsg = FrameMsg | Packet | StateMsg | { kind: 'hello' | 'end' | 'clear'; playing?: boolean }

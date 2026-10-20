@@ -9,6 +9,7 @@ interface Props {
   onProfile: (p: Profile) => void
   onSpeed: (v: number) => void
   onCatchUp: () => void
+  live?: boolean
 }
 
 const MODES: Mode[] = ['fan', 'analyst', 'player_focus']
@@ -16,7 +17,7 @@ const LANGS: Lang[] = ['en', 'es', 'et']
 const DENSITY: Density[] = ['low', 'medium', 'high']
 const SPEEDS = [1, 2, 5, 10]
 
-export function Controls({ match, profile, speed, s, onProfile, onSpeed, onCatchUp }: Props) {
+export function Controls({ match, profile, speed, s, onProfile, onSpeed, onCatchUp, live = false }: Props) {
   const set = (patch: Partial<Profile>) => onProfile({ ...profile, ...patch })
   return (
     <div className="controls">
@@ -63,13 +64,15 @@ export function Controls({ match, profile, speed, s, onProfile, onSpeed, onCatch
           </button>
         ))}
       </div>
-      <div className="segmented small">
-        {SPEEDS.map((v) => (
-          <button key={v} className={speed === v ? 'on' : ''} onClick={() => onSpeed(v)}>
-            {v}x
-          </button>
-        ))}
-      </div>
+      {!live && (
+        <div className="segmented small">
+          {SPEEDS.map((v) => (
+            <button key={v} className={speed === v ? 'on' : ''} onClick={() => onSpeed(v)}>
+              {v}x
+            </button>
+          ))}
+        </div>
+      )}
       <button className="primary" onClick={onCatchUp}>
         {s.catchUp}
       </button>

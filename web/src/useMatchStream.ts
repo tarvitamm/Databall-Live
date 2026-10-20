@@ -8,11 +8,11 @@ const TRAIL_COLOURS = ['#ffd166', '#ff6b6b', '#3ddc97']
 
 type Timed<T> = T & { period: number; expires: number }
 
-function live(item: { period: number; expires: number }, now: { period: number; t: number }): boolean {
+function showing(item: { period: number; expires: number }, now: { period: number; t: number }): boolean {
   return item.period > now.period || (item.period === now.period && item.expires > now.t)
 }
 
-export function useMatchStream(match: MatchDetail | null, profile: Profile, speed: number) {
+export function useMatchStream(match: MatchDetail | null, profile: Profile, speed: number, live = false) {
   const clock = useMemo(() => new MatchClock(), [])
   const stream = useRef<Stream | null>(null)
   const settings = useRef({ profile, speed })
@@ -25,6 +25,7 @@ export function useMatchStream(match: MatchDetail | null, profile: Profile, spee
   const [state, setState] = useState<StateMsg | null>(null)
   const [trails, setTrails] = useState<Timed<Trail>[]>([])
   const [ended, setEnded] = useState(false)
+  const [waiting, setWaiting] = useState(live)
 
   useEffect(() => {
     settings.current = { profile, speed }
@@ -51,6 +52,7 @@ export function useMatchStream(match: MatchDetail | null, profile: Profile, spee
     const { profile: startProfile, speed: startSpeed } = settings.current
     const s = openStream(match.id, startProfile, { period: 1, t: 0, speed: startSpeed }, (msg) => {
       if (msg.kind === 'frame') {
+        setWaiting(false)
         const f = msg as FrameMsg
         clock.push(f)
         const second = Math.floor(f.t)
@@ -79,11 +81,17 @@ export function useMatchStream(match: MatchDetail | null, profile: Profile, spee
         setState(msg as StateMsg)
       } else if (msg.kind === 'end') {
         setEnded(true)
+      } else if (msg.kind === 'clear') {
+        setLowerThird(null)
+        setTags([])
+        setCards([])
+        setTrails([])
+        setRecap(null)
       }
-    })
+    }, live)
     stream.current = s
     return () => s.close()
-  }, [match, clock])
+  }, [match, clock, live])
 
   useEffect(() => {
     stream.current?.send({ kind: 'profile', profile })
@@ -105,14 +113,15 @@ export function useMatchStream(match: MatchDetail | null, profile: Profile, spee
   return {
     clock,
     now,
-    lowerThird: lowerThird && live(lowerThird, now) ? lowerThird.packet : null,
+    lowerThird: lowerThird && showing(lowerThird, now) ? lowerThird.packet : null,
     feed,
-    tags: tags.filter((x) => live(x, now)),
-    cards: cards.filter((x) => live(x, now)).map((x) => x.packet),
-    recap: recap && live(recap, now) ? recap.packet : null,
+    tags: tags.filter((x) => showing(x, now)),
+    cards: cards.filter((x) => showing(x, now)).map((x) => x.packet),
+    recap: recap && showing(recap, now) ? recap.packet : null,
     state,
-    trails: trails.filter((x) => live(x, now)),
+    trails: trails.filter((x) => showing(x, now)),
     ended,
+    waiting,
     seek,
     dismissRecap: () => setRecap(null),
   }

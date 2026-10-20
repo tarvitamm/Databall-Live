@@ -14,7 +14,8 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 | Insight crew (`src/blindside/insights`) | Done as an Agent Framework workflow, with templates: analyst, storyteller (analyst, fan and player focus in English, Spanish and Estonian), verifier, producer with timed overlay packets, half-time and full-time recaps |
 | Live replay server (`src/blindside/live`) | Done: REST API and a WebSocket that streams tracking frames and each viewer's overlays on the match clock, with seek, speed and live profile changes |
 | Fan app and broadcast overlay (`web`) | Done: animated pitch, lower thirds, player tags, pass and shot cards, run trails, "Why?" replays, control vs chaos, momentum, player focus, catch-up, timeline, English, Spanish and Estonian |
-| Microsoft Foundry, Agent Framework and Azure deployment | After the app |
+| Producer console (`web/src/producer.tsx`, `src/blindside/live/session.py`) | Done: live broadcast session, approve before air, kill switch, type switches, failure injection, crew report |
+| Microsoft Foundry models and Azure deployment | Next |
 
 ## Run the simulator
 
@@ -109,6 +110,20 @@ npm --prefix web run dev
 Open http://localhost:5173. Add `?match=m_0106&view=overlay` for the transparent 1920 x 1080 broadcast overlay, which
 can be used as a browser source in OBS. For a single server, build the app with `npm --prefix web run build` and
 `blindside-serve` serves `web/dist` itself on port 8000.
+
+## Producer console and live broadcast
+
+Open `?match=m_0106&view=producer` for the producer console. It runs a live broadcast on one shared match clock with
+the insight crew working as the match plays, in ten-second steps:
+
+- start, pause, speed and seek the broadcast
+- automatic mode, or approve before air: insights wait in a queue and only reach viewers once approved
+- a kill switch that clears every graphic at once, and switches per insight type
+- inject storyteller errors and watch the verifier reject them in the crew log
+- the rundown with each insight's status, signals, confidence, drafting agent and every language
+- call counts and timings for each agent
+
+Viewers join the broadcast with `?match=m_0106&live=1`, and the overlay with `&view=overlay&live=1`.
 
 ## Detection quality (12 simulated matches)
 

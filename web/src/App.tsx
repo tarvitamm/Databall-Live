@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { strings } from './i18n'
 import type { Profile } from './types'
+import { ProducerView } from './producer'
 import { MatchPicker, MatchView, OverlayView } from './views'
 
 const DEFAULT: Profile = { mode: 'fan', lang: 'en', clubs: [], players: [], density: 'medium' }
@@ -47,7 +48,9 @@ export default function App() {
     history.pushState(null, '', url)
   }
 
-  if (matchId && query.get('view') === 'overlay') return <OverlayView id={matchId} profile={profile} />
-  if (matchId) return <MatchView id={matchId} profile={profile} onProfile={setProfile} onBack={() => open(null)} />
+  const live = query.get('live') === '1'
+  if (matchId && query.get('view') === 'producer') return <ProducerView id={matchId} />
+  if (matchId && query.get('view') === 'overlay') return <OverlayView id={matchId} profile={profile} live={live} />
+  if (matchId) return <MatchView id={matchId} profile={profile} onProfile={setProfile} onBack={() => open(null)} live={live} />
   return <MatchPicker s={strings(profile.lang)} onPick={open} />
 }

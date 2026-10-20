@@ -18,6 +18,16 @@ export const api = {
     get<{ frames: FrameMsg[] }>(`/api/matches/${id}/replay`, { period, start, end }),
 }
 
+export function openSocket(path: string, onMessage: (msg: Record<string, unknown>) => void): Stream {
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
+  const ws = new WebSocket(`${scheme}://${location.host}${path}`)
+  ws.onmessage = (ev) => onMessage(JSON.parse(ev.data) as Record<string, unknown>)
+  return {
+    send: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)),
+    close: () => ws.close(),
+  }
+}
+
 export interface Stream {
   send: (msg: object) => void
   close: () => void
@@ -28,6 +38,7 @@ export function openStream(
   profile: Profile,
   start: { period: number; t: number; speed: number },
   onMessage: (msg: ServerMsg) => void,
+  live = false,
 ): Stream {
   const params = new URLSearchParams({
     mode: profile.mode,
@@ -40,7 +51,7 @@ export function openStream(
     speed: String(start.speed),
   })
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
-  const ws = new WebSocket(`${scheme}://${location.host}/ws/${id}?${params}`)
+  const ws = new WebSocket(`${scheme}://${location.host}/ws/${live ? 'live/' : ''}${id}?${params}`)
   ws.onmessage = (ev) => onMessage(JSON.parse(ev.data) as ServerMsg)
   return {
     send: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)),

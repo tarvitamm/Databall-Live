@@ -18,7 +18,8 @@ from fastapi.staticfiles import StaticFiles
 
 from ..contracts import ViewerProfile
 from ..stats.kinematics import count_sprints
-from .store import Bundle, MatchStore, frame_message
+from .session import Sessions
+from .store import Bundle, MatchStore, frame_message, match_state, state_message
 from .viewer import Viewer
 
 RUN_TYPES = {"run_in_behind", "checking_run", "overlap_run", "forward_run"}
@@ -26,6 +27,7 @@ RUN_TYPES = {"run_in_behind", "checking_run", "overlap_run", "forward_run"}
 app = FastAPI(title="Blindside")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 store = MatchStore(Path(os.environ.get("BLINDSIDE_DATA", "data/league")))
+sessions = Sessions(store)
 
 
 def _bundle(match_id: str) -> Bundle:
@@ -108,16 +110,7 @@ def catchup(match_id: str, period: int, t: float, lang: str = "en") -> dict:
     top = sorted(aired, key=lambda p: -p["data"].get("significance", 0))[:3]
     top.sort(key=lambda p: (p["period"], p["show_at"]))
     return {"score": b.score(period, t), "xg": b.xg(period, t), "moments": [p["text"] for p in top],
-            "state": _state(b, period, t)}
-
-
-def _state(b: Bundle, period: int, t: float) -> dict:
-    bins = [s for s in b.metrics["state"] if s["period"] < period or (s["period"] == period and s["t_end"] <= t)]
-    last = bins[-1] if bins else None
-    rows = [m for m in b.metrics["momentum"] if m[0] < period or (m[0] == period and m[1] <= t)]
-    return {"label": last["label"] if last else "balanced", "chaos": last["chaos"] if last else 50,
-            "control": last["control"] if last else [50, 50], "momentum": rows[-1][2] if rows else 0.0,
-            "momentum_series": [r[2] for r in rows[-60:]]}
+            "state": match_state(b, period, t)}
 
 
 @app.websocket("/ws/{match_id}")
@@ -172,8 +165,7 @@ async def stream(ws: WebSocket, match_id: str) -> None:
                     await ws.send_json({"kind": "packet", **packet})
                 pointer += 1
             if k % (5 * md.hz) == 0:
-                await ws.send_json({"kind": "state", "period": period, "t": t, "score": b.score(period, t),
-                                    "xg": b.xg(period, t), **_state(b, period, t)})
+                await ws.send_json(state_message(b, period, t))
             step = max(1, int(round(control["speed"])))
             await asyncio.sleep(0.1 * step / control["speed"])
             k += step
@@ -182,6 +174,46 @@ async def stream(ws: WebSocket, match_id: str) -> None:
         pass
     finally:
         receiver.cancel()
+
+
+def _profile(q, viewer_id: str = "anon") -> ViewerProfile:
+    return ViewerProfile(viewer=viewer_id, mode=q.get("mode", "fan"), lang=q.get("lang", "en"),
+                         clubs=[c for c in q.get("clubs", "").split(",") if c],
+                         players=[p for p in q.get("players", "").split(",") if p], density=q.get("density", "medium"))
+
+
+@app.websocket("/ws/live/{match_id}")
+async def live_viewer(ws: WebSocket, match_id: str) -> None:
+    await ws.accept()
+    session = await sessions.get(match_id)
+    viewer = Viewer(_profile(ws.query_params))
+    session.viewers[ws] = viewer
+    await ws.send_json({"kind": "hello", "match": match_id, "live": True, "playing": session.playing})
+    if session.k > 0:
+        await ws.send_json(frame_message(session.b, session.k))
+    try:
+        while True:
+            msg = await ws.receive_json()
+            if msg.get("kind") == "profile":
+                viewer.profile = viewer.profile.model_copy(update={k: v for k, v in msg["profile"].items()
+                                                                  if k in ViewerProfile.model_fields})
+                viewer.reset()
+    except WebSocketDisconnect:
+        session.viewers.pop(ws, None)
+
+
+@app.websocket("/ws/console/{match_id}")
+async def console(ws: WebSocket, match_id: str) -> None:
+    await ws.accept()
+    session = await sessions.get(match_id)
+    session.consoles.add(ws)
+    await ws.send_json(session.snapshot())
+    await ws.send_json(frame_message(session.b, session.k))
+    try:
+        while True:
+            await session.command(await ws.receive_json())
+    except WebSocketDisconnect:
+        session.consoles.discard(ws)
 
 
 def main(argv: list[str] | None = None) -> int:
