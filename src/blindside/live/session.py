@@ -1,13 +1,21 @@
-"""A live broadcast: one shared match clock, the insight crew running as play unfolds, and a producer in control."""
+"""A live broadcast: one shared match clock, the insight crew running as play unfolds, and a producer in control.
+
+The crew runs beside the clock, never in its way: when the model is slow the match keeps playing, and a crew that
+falls too far behind catches up from the cache and templates instead of airing stale graphics.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
+from collections import OrderedDict
 from dataclasses import dataclass, field
 
 from fastapi import WebSocket
 
+from ..insights.cache import Cache
 from ..insights.crew import Timings, build_crew, minute_batches, run_batch
+from ..insights.foundry import Foundry, settings
 from ..stats.analyse import Analysis, analyse
 from .store import Bundle, MatchStore, frame_message, state_message
 from .viewer import Viewer
@@ -15,6 +23,10 @@ from .viewer import Viewer
 LIVE_STEP_S = 10.0
 APPROVAL_WINDOW_S = 20.0
 LOWER_THIRD_S = 12.0
+CATCH_UP_S = 45.0
+TRANSPORT = {"play", "pause", "speed", "seek"}
+MAX_SESSIONS = 8
+MAX_ANALYSES = 4
 
 
 @dataclass
@@ -23,10 +35,11 @@ class Control:
     killed: bool = False
     disabled: set[str] = field(default_factory=set)
     unreliable: float = 0.0
+    model: bool = False
 
     def as_dict(self) -> dict:
         return {"mode": self.mode, "killed": self.killed, "disabled": sorted(self.disabled),
-                "unreliable": self.unreliable}
+                "unreliable": self.unreliable, "model": self.model}
 
 
 def _before(a: tuple[int, float], b: tuple[int, float]) -> bool:
@@ -34,10 +47,13 @@ def _before(a: tuple[int, float], b: tuple[int, float]) -> bool:
 
 
 class LiveSession:
-    def __init__(self, bundle: Bundle, analysis: Analysis) -> None:
+    def __init__(self, bundle: Bundle, analysis: Analysis, foundry: Foundry | None = None,
+                 cache: Cache | None = None) -> None:
         self.b = bundle
         self.a = analysis
-        self.control = Control()
+        self.foundry = foundry
+        self.cache = cache or Cache()
+        self.control = Control(model=foundry is not None)
         self.speed = 1.0
         self.playing = False
         self.k = 0
@@ -49,10 +65,13 @@ class LiveSession:
         self.held: list[tuple[dict, float]] = []
         self.notes: list[dict] = []
         self.task: asyncio.Task | None = None
+        self.crew_task: asyncio.Task | None = None
         self._reset_crew()
 
     def _reset_crew(self) -> None:
-        self.crew = build_crew(self.a, unreliable=self.control.unreliable)
+        self.crew = build_crew(self.a, unreliable=self.control.unreliable, foundry=self.foundry, cache=self.cache,
+                               live=True)
+        self.crew.switch.mode = "live" if self.control.model else "off"
         self.timings = Timings()
         self.batches = minute_batches(self.a, LIVE_STEP_S)
         self.next_batch = 0
@@ -90,7 +109,15 @@ class LiveSession:
 
     def crew_report(self) -> dict:
         return {"executors": self.timings.report(), "insights": len(self.insights), "rejections": self.rejections,
-                "fallbacks": self.fallbacks, "unreliable": self.control.unreliable}
+                "fallbacks": self.fallbacks, "unreliable": self.control.unreliable,
+                "model": self.foundry.report() if self.foundry else None}
+
+    def _model_mode(self, batch_t: tuple[int, float], silent: bool) -> str:
+        if not self.control.model:
+            return "off"
+        period, t = self.now
+        behind = period > batch_t[0] or t - batch_t[1] > CATCH_UP_S
+        return "cache" if silent or behind else "live"
 
     async def _run_crew(self, until: tuple[int, float], silent: bool = False) -> None:
         while self.next_batch < len(self.batches):
@@ -98,7 +125,9 @@ class LiveSession:
             if not _before((batch.period, batch.t), until):
                 break
             self.next_batch += 1
+            self.crew.switch.mode = self._model_mode((batch.period, batch.t), silent)
             packets, notes = await run_batch(self.crew, batch, self.timings)
+            self.cache.save()
             for note in notes:
                 if note.kind == "rejected":
                     self.rejections += 1
@@ -134,11 +163,12 @@ class LiveSession:
             lines: dict[str, dict[str, dict]] = {}
             for v in variants:
                 if v.insight == ins.id:
-                    lines.setdefault(v.lang, {})[v.persona] = {"headline": v.headline, "body": v.body}
+                    lines.setdefault(v.lang, {})[v.persona] = {"headline": v.headline, "body": v.body,
+                                                               "source": v.source}
             payload = {"id": ins.id, "type": ins.type, "period": ins.period, "t": ins.t, "claim": ins.claim,
                        "mechanism": ins.mechanism, "consequence": ins.consequence, "signals": ins.signals,
                        "confidence": ins.confidence, "significance": ins.significance, "entities": ins.entities,
-                       "model": ins.model.model_dump(), "lines": lines}
+                       "model": ins.model.model_dump(), "tools": d.tools, "lines": lines}
             self.insights[ins.id] = payload
             if not silent:
                 await self.to_consoles({"kind": "insight", **payload, "status": self.statuses.get(ins.id, "queued")})
@@ -194,17 +224,23 @@ class LiveSession:
                 still.append((packet, due))
         self.held = still
 
+    async def crew_loop(self) -> None:
+        while True:
+            if self.playing:
+                await self._run_crew(self.now)
+            await asyncio.sleep(0.2)
+
     async def run(self) -> None:
         md = self.b.md
+        self.crew_task = asyncio.create_task(self.crew_loop())
         while True:
             if not self.playing or self.k >= len(md.t) - 1:
                 if self.playing:
                     self.playing = False
                     await self.to_viewers({"kind": "end"})
-                    await self.to_consoles({"kind": "playing", "playing": False})
+                    await self._transport()
                 await asyncio.sleep(0.1)
                 continue
-            await self._run_crew(self.now)
             frame = frame_message(self.b, self.k)
             await self.to_viewers(frame)
             if self.k % 2 == 0:
@@ -216,6 +252,10 @@ class LiveSession:
             step = max(1, int(round(self.speed)))
             await asyncio.sleep(0.1 * step / self.speed)
             self.k = min(self.k + step, len(md.t) - 1)
+
+    async def _transport(self) -> None:
+        message = {"kind": "transport", "playing": self.playing, "speed": self.speed}
+        await self._send(list(self.viewers) + list(self.consoles), message)
 
     async def command(self, msg: dict) -> None:
         action = msg.get("action")
@@ -240,18 +280,29 @@ class LiveSession:
         elif action == "unreliable":
             self.control.unreliable = max(0.0, min(float(msg["value"]), 1.0))
             self.crew.storyteller.unreliable = self.control.unreliable
+        elif action == "model":
+            self.control.model = bool(msg["value"]) and self.foundry is not None
+            self.crew.switch.mode = "live" if self.control.model else "off"
+        if action in TRANSPORT:
+            await self._transport()
         await self.to_consoles({"kind": "control", "playing": self.playing, "speed": self.speed,
                                 "control": self.control.as_dict(), "approvals": self.approvals})
 
     async def seek(self, period: int, t: float) -> None:
+        running = self.crew_task is not None
+        if running:
+            self.crew_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.crew_task
         self.k = self.b.frame(period, t)
         self._reset_crew()
-        self.crew.storyteller.unreliable = self.control.unreliable
         self.held = []
         self.insights = {}
         self.statuses = {}
         self.notes = []
         await self._run_crew(self.now, silent=True)
+        if running:
+            self.crew_task = asyncio.create_task(self.crew_loop())
         for v in self.viewers.values():
             v.reset()
         await self.to_viewers({"kind": "clear"})
@@ -259,17 +310,47 @@ class LiveSession:
 
 
 class Sessions:
+    """One live session per match and room, so each audience gets its own broadcast."""
+
     def __init__(self, store: MatchStore) -> None:
         self.store = store
-        self.live: dict[str, LiveSession] = {}
+        self.live: OrderedDict[str, LiveSession] = OrderedDict()
+        self.analyses: OrderedDict[str, Analysis] = OrderedDict()
+        self.caches: dict[str, Cache] = {}
+        self.foundry: Foundry | None = None
         self.lock = asyncio.Lock()
 
-    async def get(self, match_id: str) -> LiveSession:
+    def model(self) -> Foundry | None:
+        if self.foundry is None:
+            found = settings()
+            self.foundry = Foundry(found) if found else None
+        return self.foundry
+
+    async def _analysis(self, bundle: Bundle) -> Analysis:
+        if bundle.id not in self.analyses:
+            self.analyses[bundle.id] = await asyncio.to_thread(analyse, bundle.folder)
+            while len(self.analyses) > MAX_ANALYSES:
+                self.analyses.popitem(last=False)
+        self.analyses.move_to_end(bundle.id)
+        return self.analyses[bundle.id]
+
+    def _evict(self) -> None:
+        idle = [k for k, s in self.live.items() if not s.viewers and not s.consoles]
+        while len(self.live) >= MAX_SESSIONS and idle:
+            session = self.live.pop(idle.pop(0))
+            for task in (session.task, session.crew_task):
+                if task:
+                    task.cancel()
+
+    async def get(self, match_id: str, room: str = "main") -> LiveSession:
+        key = f"{match_id}:{room}"
         async with self.lock:
-            if match_id not in self.live:
+            if key not in self.live:
+                self._evict()
                 bundle = self.store.get(match_id)
-                analysis = await asyncio.to_thread(analyse, bundle.folder)
-                session = LiveSession(bundle, analysis)
+                cache = self.caches.setdefault(match_id, Cache(bundle.folder / "cache.json"))
+                session = LiveSession(bundle, await self._analysis(bundle), self.model(), cache)
                 session.task = asyncio.create_task(session.run())
-                self.live[match_id] = session
-            return self.live[match_id]
+                self.live[key] = session
+            self.live.move_to_end(key)
+            return self.live[key]

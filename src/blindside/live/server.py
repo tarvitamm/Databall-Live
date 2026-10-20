@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from ..contracts import ViewerProfile
 from ..stats.kinematics import count_sprints
-from .session import Sessions
+from .session import TRANSPORT, Sessions
 from .store import Bundle, MatchStore, frame_message, match_state, state_message
 from .viewer import Viewer
 
@@ -43,6 +43,12 @@ def _before(item: dict, period: int, t: float, key: str = "t_end") -> bool:
 @app.get("/api/matches")
 def matches() -> list[dict]:
     return [store.summary(m) for m in store.ids()]
+
+
+@app.get("/api/status")
+def status() -> dict:
+    foundry = sessions.model()
+    return {"model": foundry.model if foundry else None}
 
 
 @app.get("/api/matches/{match_id}")
@@ -182,37 +188,56 @@ def _profile(q, viewer_id: str = "anon") -> ViewerProfile:
                          players=[p for p in q.get("players", "").split(",") if p], density=q.get("density", "medium"))
 
 
+def _room(ws: WebSocket) -> str:
+    room = ws.query_params.get("room", "main")
+    return "".join(c for c in room if c.isalnum())[:24] or "main"
+
+
 @app.websocket("/ws/live/{match_id}")
 async def live_viewer(ws: WebSocket, match_id: str) -> None:
     await ws.accept()
-    session = await sessions.get(match_id)
+    if match_id not in store.ids():
+        await ws.close(code=4404)
+        return
+    session = await sessions.get(match_id, _room(ws))
     viewer = Viewer(_profile(ws.query_params))
-    session.viewers[ws] = viewer
-    await ws.send_json({"kind": "hello", "match": match_id, "live": True, "playing": session.playing})
-    if session.k > 0:
-        await ws.send_json(frame_message(session.b, session.k))
     try:
+        await ws.send_json({"kind": "hello", "match": match_id, "live": True, "playing": session.playing,
+                            "speed": session.speed})
+        await ws.send_json(frame_message(session.b, session.k))
+        period, t = session.now
+        await ws.send_json(state_message(session.b, period, t))
+        session.viewers[ws] = viewer
         while True:
             msg = await ws.receive_json()
             if msg.get("kind") == "profile":
                 viewer.profile = viewer.profile.model_copy(update={k: v for k, v in msg["profile"].items()
                                                                   if k in ViewerProfile.model_fields})
                 viewer.reset()
+            elif msg.get("kind") == "control" and msg.get("action") in TRANSPORT:
+                await session.command(msg)
     except WebSocketDisconnect:
+        pass
+    finally:
         session.viewers.pop(ws, None)
 
 
 @app.websocket("/ws/console/{match_id}")
 async def console(ws: WebSocket, match_id: str) -> None:
     await ws.accept()
-    session = await sessions.get(match_id)
-    session.consoles.add(ws)
-    await ws.send_json(session.snapshot())
-    await ws.send_json(frame_message(session.b, session.k))
+    if match_id not in store.ids():
+        await ws.close(code=4404)
+        return
+    session = await sessions.get(match_id, _room(ws))
     try:
+        await ws.send_json(session.snapshot())
+        await ws.send_json(frame_message(session.b, session.k))
+        session.consoles.add(ws)
         while True:
             await session.command(await ws.receive_json())
     except WebSocketDisconnect:
+        pass
+    finally:
         session.consoles.discard(ws)
 
 
