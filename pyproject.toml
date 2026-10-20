@@ -7,18 +7,22 @@ authors = [
 ]
 requires-python = ">=3.12,<3.14"
 dependencies = [
+    "fastapi>=0.151.0",
     "numpy>=2.0",
     "pydantic>=2.7",
     "scipy>=1.18.1",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [project.scripts]
 blindside-sim = "blindside.sim.cli:main"
 blindside-analyse = "blindside.stats.analyse:main"
 blindside-insights = "blindside.insights.pipeline:main"
+blindside-serve = "blindside.live.server:main"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=8.0",
     "ruff>=0.6",
 ]

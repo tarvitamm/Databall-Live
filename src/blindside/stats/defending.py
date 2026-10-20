@@ -167,7 +167,7 @@ def overloads(md: MatchData, poss: Possession, ids: PatternIds, radius: float = 
         mine = np.linalg.norm(md.pos[frames][:, md.members(team)] - ball[:, None, :], axis=2) < radius
         theirs = np.linalg.norm(md.pos[frames][:, md.members(1 - team)] - ball[:, None, :], axis=2) < radius
         ball_tf = md.to_team_frame(ball, team, frames=frames)
-        hit = (mine.sum(1) - theirs.sum(1) >= edge) & (ball_tf[:, 0] > LENGTH / 2)
+        hit = (mine.sum(1) - theirs.sum(1) >= edge) & (theirs.sum(1) >= 2) & (ball_tf[:, 0] > LENGTH / 2)
         k = 0
         while k < len(frames):
             if not hit[k]:

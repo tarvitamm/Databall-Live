@@ -55,6 +55,14 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} {sec} sekundiga."),
                "fan": ("{outcome}: {shooter}", "{passes}, {sec} sekundit ja {shooter} lööb.")},
     },
+    "chain_solo": {
+        "en": {"analyst": ("{outcome}: {shooter}", "xG {xg}, no passes: {sec} s from winning the ball to the shot."),
+               "fan": ("{outcome}: {shooter}", "Won it and went alone: {sec} seconds from regain to shot.")},
+        "es": {"analyst": ("{outcome}: {shooter}", "xG {xg}, sin pases: {sec} s de la recuperación al remate."),
+               "fan": ("{outcome}: {shooter}", "La recuperó y se fue solo: {sec} segundos hasta el remate.")},
+        "et": {"analyst": ("{outcome}: {shooter}", "xG {xg}, söötudeta: {sec} sekundit palli võitmisest löögini."),
+               "fan": ("{outcome}: {shooter}", "Võitis palli ja läks üksi: {sec} sekundit löögini.")},
+    },
     "momentum_swing": {
         "en": {"analyst": ("Momentum: {team}", "Threat balance has swung to {team}. Drivers: {drivers}."),
                "fan": ("{team} are on top now", "The game has swung their way in the last few minutes.")},
@@ -96,12 +104,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("Vastane leidis augu", "{player} sai palli vabast ruumist liinide vahel.")},
     },
     "overload": {
-        "en": {"analyst": ("Overload: {team}", "{a} v {d} near the ball on the {side}."),
-               "fan": ("{team} have the numbers", "{a} against {d} on the {side}. Watch that side.")},
-        "es": {"analyst": ("Superioridad: {team}", "{a} contra {d} cerca del balón por la {side}."),
-               "fan": ("{team} tienen superioridad", "{a} contra {d} por la {side}. Atentos a esa banda.")},
+        "en": {"analyst": ("Overload: {team}", "{a} v {d} near the ball {side}."),
+               "fan": ("{team} have the numbers", "{a} against {d} {side}. Watch that area.")},
+        "es": {"analyst": ("Superioridad: {team}", "{a} contra {d} cerca del balón {side}."),
+               "fan": ("{team} tienen superioridad", "{a} contra {d} {side}. Atentos a esa zona.")},
         "et": {"analyst": ("Ülekaal: {team}", "Palli lähedal {a} vs {d}, {side}."),
-               "fan": ("{team} on arvulises ülekaalus", "{a} {d} vastu, {side}. Jälgi seda äärt.")},
+               "fan": ("{team} on arvulises ülekaalus", "{a} {d} vastu, {side}. Jälgi seda ala.")},
     },
     "fatigue": {
         "en": {"analyst": ("Fatigue: {player}", "High-intensity running {pct}% vs the first 15 min. Top speed {now} km/h (was {early})."),

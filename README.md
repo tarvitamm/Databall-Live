@@ -12,7 +12,8 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 | Simulator v1 (`src/blindside/sim`) | Done: 22 agents at 10 Hz, passing, shots, offside, pressing, box marking, clearances, off-ball runs with decoy intent and follow/hold marking choices, fatigue, scripted scenarios |
 | Stats engine (`src/blindside/stats`) | Done for v1: event-based possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing shifts, counter-pressing, recovery runs, line movements, gaps between the lines, overloads, pass difficulty and xG models, speed and distance triggers, fatigue, shot chains, control vs chaos, momentum swings, evaluation against hidden truth |
 | Insight crew (`src/blindside/insights`) | Done with templates: analyst, storyteller (analyst, fan and player focus in English, Spanish and Estonian), verifier, producer with timed overlay packets, half-time and full-time recaps |
-| Live replay server, fan app and overlays | Next |
+| Live replay server (`src/blindside/live`) | Done: REST API and a WebSocket that streams tracking frames and each viewer's overlays on the match clock, with seek, speed and live profile changes |
+| Fan app and broadcast overlay (`web`) | Done: animated pitch, lower thirds, player tags, pass and shot cards, run trails, "Why?" replays, control vs chaos, momentum, player focus, catch-up, timeline, English, Spanish and Estonian |
 | Microsoft Foundry, Agent Framework and Azure deployment | After the app |
 
 ## Run the simulator
@@ -64,6 +65,18 @@ uv run blindside-insights data/league/m_0106
 
 Writes `insights.jsonl`, `variants.jsonl` (every line per persona and language) and `packets.jsonl` (timed overlays).
 Every line is checked against the facts it was built from before it is scheduled.
+
+## Run the app
+
+```bash
+uv run blindside-serve --data data/league
+npm --prefix web install
+npm --prefix web run dev
+```
+
+Open http://localhost:5173. Add `?match=m_0106&view=overlay` for the transparent 1920 x 1080 broadcast overlay, which
+can be used as a browser source in OBS. For a single server, build the app with `npm --prefix web run build` and
+`blindside-serve` serves `web/dist` itself on port 8000.
 
 ## Detection quality (12 simulated matches)
 

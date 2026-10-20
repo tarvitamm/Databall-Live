@@ -21,8 +21,8 @@ POSITION = {
            "LS": "ründaja"},
 }
 
-SIDE = {"en": {"left": "left", "right": "right", "centre": "centre"},
-        "es": {"left": "izquierda", "right": "derecha", "centre": "centro"},
+SIDE = {"en": {"left": "on the left", "right": "on the right", "centre": "through the middle"},
+        "es": {"left": "por la izquierda", "right": "por la derecha", "centre": "por el centro"},
         "et": {"left": "vasakul", "right": "paremal", "centre": "keskel"}}
 
 

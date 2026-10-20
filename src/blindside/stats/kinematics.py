@@ -42,18 +42,25 @@ def compute_kinematics(md: MatchData, window: int = 7, poly: int = 2) -> Kinemat
     return Kinematics(vel=vel, speed=speed, accel=accel, ball_speed=ball_speed)
 
 
+def count_sprints(speed: np.ndarray, hz: int, min_s: float = 1.0, merge_s: float = 0.5) -> int:
+    """Spells above sprint speed lasting at least `min_s`, with short dips merged."""
+    fast = np.flatnonzero(speed >= SPRINT_MS)
+    if len(fast) == 0:
+        return 0
+    spells = np.split(fast, np.flatnonzero(np.diff(fast) > merge_s * hz) + 1)
+    return sum(1 for s in spells if (s[-1] - s[0] + 1) / hz >= min_s)
+
+
 def physical_summary(md: MatchData, kin: Kinematics) -> dict[str, dict[str, float]]:
     """Distance, high-intensity distance, sprints and top speed per player."""
     dt = 1.0 / md.hz
     out = {}
     for i, pid in enumerate(md.ids):
         s = kin.speed[:, i]
-        sprinting = s >= SPRINT_MS
-        starts = np.flatnonzero(sprinting[1:] & ~sprinting[:-1])
         out[pid] = {
             "distance_km": round(float(s.sum() * dt / 1000.0), 2),
             "high_intensity_km": round(float(s[s >= HIGH_INTENSITY_MS].sum() * dt / 1000.0), 2),
-            "sprints": int(len(starts)),
+            "sprints": count_sprints(s, md.hz),
             "top_speed_kmh": round(float(s.max() * 3.6), 1),
         }
     return out

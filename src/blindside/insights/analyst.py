@@ -93,7 +93,7 @@ def _chain(b: Builder, p: Pattern, by_id: dict[str, Pattern]) -> None:
     facts = {"team": team, "opp": b.opp(team), "outcome": p.measures["outcome"], "shooter": p.actor, "xg": xg,
              "passes": p.measures["passes"], "sec": p.measures["seconds"]}
     players = [p.actor]
-    key = "chain"
+    key = "chain" if int(p.measures["passes"]) > 0 else "chain_solo"
     if decoys:
         facts.update(decoy=decoys[0].actor, defender=decoys[0].affected[0])
         players += [decoys[0].actor, decoys[0].affected[0]]

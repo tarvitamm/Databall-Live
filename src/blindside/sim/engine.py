@@ -39,8 +39,8 @@ CONTROL_RADIUS = 1.0      # m, a player can play the ball inside this distance
 TACKLE_RANGE = 1.3        # m
 PRESSURE_RANGE = 4.0      # m
 PERIOD_BASE = {1: 0.0, 2: 45 * 60.0}
-SHOT_BIAS = 0.6          # how readily players shoot, relative to the chance's xG
-SHOT_MIN_XG = 0.07       # players ignore shooting chances below this
+SHOT_BIAS = 0.5          # how readily players shoot, relative to the chance's xG
+SHOT_MIN_XG = 0.08       # players ignore shooting chances below this
 
 # off-ball run starts per second of possession, per role, at run_rate 0.5
 RUN_BASE = {"ST": 0.025, "W": 0.022, "AM": 0.015, "WM": 0.012, "CM": 0.007, "FB": 0.008}
