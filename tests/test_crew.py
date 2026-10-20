@@ -40,7 +40,7 @@ def test_unreliable_storyteller_is_caught_and_nothing_wrong_airs(folder):
 def test_every_executor_takes_part(folder):
     out = run(folder)
     assert set(out.report["executors"]) == {"moment_router", "tactical_analyst", "player_lens", "editor",
-                                            "storyteller", "verifier", "producer"}
+                                            "storyteller", "verifier", "recapper", "producer"}
 
 
 def test_checkpoints_are_written(folder, tmp_path):

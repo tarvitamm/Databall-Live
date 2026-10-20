@@ -169,6 +169,7 @@ class Pattern(BaseModel):
 
 class ModelInfo(BaseModel):
     analyst: str | None = None
+    storyteller: str | None = None
     prompt_version: str | None = None
 
 

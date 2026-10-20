@@ -22,6 +22,9 @@ class Draft:
     insight: Insight
     key: str
     facts: dict = field(default_factory=dict)
+    seen: set[float] = field(default_factory=set)
+    seen_text: str = ""
+    tools: list[str] = field(default_factory=list)
 
 
 class Builder:
@@ -170,7 +173,7 @@ class RepeatGuard:
     def _abs(d: Draft) -> float:
         return d.insight.t + (10_000.0 if d.insight.period == 2 else 0.0)
 
-    def allow(self, d: Draft) -> bool:
+    def allow(self, d: Draft, commit: bool = True) -> bool:
         now = self._abs(d)
         team = (d.insight.entities.get("teams") or [""])[0]
         goal = d.facts.get("outcome") == "goal"
@@ -181,6 +184,8 @@ class RepeatGuard:
         last_t, last_sig = self.last_team.get(team, (-1e9, 0.0))
         if now - last_t < MIN_GAP_S and not goal and d.insight.significance < last_sig + 0.2:
             return False
+        if not commit:
+            return True
         if gap is not None:
             self.last_kind[kind_key] = now
         self.last_team[team] = (now, d.insight.significance)

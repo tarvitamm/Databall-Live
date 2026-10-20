@@ -24,6 +24,7 @@ class Variant:
     lang: str
     headline: str
     body: str
+    source: str = "template"
 
 
 class Names:

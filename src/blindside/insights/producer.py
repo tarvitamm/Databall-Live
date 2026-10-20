@@ -75,7 +75,9 @@ class Scheduler:
                 text={"headline": v.headline, "body": v.body},
                 data={"type": ins.type, "teams": ins.entities.get("teams", []),
                       "players": ins.entities.get("players", []), "significance": ins.significance,
-                      "confidence": ins.confidence, "signals": ins.signals},
+                      "confidence": ins.confidence, "signals": ins.signals, "source": v.source,
+                      "why": {"claim": ins.claim, "mechanism": ins.mechanism, "consequence": ins.consequence,
+                              "analyst": ins.model.analyst, "storyteller": ins.model.storyteller}},
                 viz={"kind": VIZ.get(ins.type, "none"), "window": list(ins.evidence.window or (ins.t - 10, ins.t))},
                 fallback=(v.insight, v.persona, v.lang) in fallback))
             if v.persona == "fan":
@@ -97,16 +99,24 @@ class Scheduler:
                     data={"type": p.type, "kind": "tag", "teams": [p.team], "players": [p.actor], "pattern": p.id}))
         return out
 
-    def recap(self, period: int, t: float) -> list[OverlayPacket]:
+    def recap_references(self, period: int, t: float) -> dict[tuple[str, str], tuple[str, str]]:
+        moment = "half_time" if period == 1 else "full_time"
+        out = {}
+        for lang in self.langs:
+            text = self.recap_text(lang, period, t, moment)
+            for persona in ("analyst", "fan"):
+                out[(lang, persona)] = text
+        return out
+
+    def recap(self, period: int, t: float, texts: dict[tuple[str, str], tuple[str, str]] | None = None,
+              source: str = "template") -> list[OverlayPacket]:
         moment = "half_time" if period == 1 else "full_time"
         out = []
-        for lang in self.langs:
-            headline, body = self.recap_text(lang, period, t, moment)
-            for persona in ("analyst", "fan"):
-                out.append(OverlayPacket(
-                    packet=self._id(), match=self.a.md.meta.match, persona=persona, lang=lang, slot="panel",
-                    priority=1, show_at=round(t + 1.0, 1), expires_at=round(t + 61.0, 1), period=period,
-                    text={"headline": headline, "body": body}, data={"type": "recap", "kind": moment}))
+        for (lang, persona), (headline, body) in (texts or self.recap_references(period, t)).items():
+            out.append(OverlayPacket(
+                packet=self._id(), match=self.a.md.meta.match, persona=persona, lang=lang, slot="panel",
+                priority=1, show_at=round(t + 1.0, 1), expires_at=round(t + 61.0, 1), period=period,
+                text={"headline": headline, "body": body}, data={"type": "recap", "kind": moment, "source": source}))
         return out
 
     def recap_text(self, lang: str, period: int, t: float, moment: str) -> tuple[str, str]:
