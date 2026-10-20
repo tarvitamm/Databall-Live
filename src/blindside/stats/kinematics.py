@@ -11,6 +11,7 @@ from .match import MatchData
 
 SPRINT_MS = 25.2 / 3.6        # sprint threshold, 25.2 km/h
 HIGH_INTENSITY_MS = 19.8 / 3.6
+MAX_BALL_MS = 45.0          # faster means the ball was placed for a restart
 
 
 @dataclass
@@ -36,7 +37,9 @@ def compute_kinematics(md: MatchData, window: int = 7, poly: int = 2) -> Kinemat
     for period in (1, 2):
         idx = np.flatnonzero(md.period == period)
         accel[idx] = savgol_filter(speed[idx], window, poly, deriv=1, delta=dt, axis=0, mode="interp")
-    return Kinematics(vel=vel, speed=speed, accel=accel, ball_speed=np.linalg.norm(ball_v, axis=1))
+    ball_speed = np.linalg.norm(ball_v, axis=1)
+    ball_speed[ball_speed > MAX_BALL_MS] = np.nan
+    return Kinematics(vel=vel, speed=speed, accel=accel, ball_speed=ball_speed)
 
 
 def physical_summary(md: MatchData, kin: Kinematics) -> dict[str, dict[str, float]]:

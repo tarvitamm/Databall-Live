@@ -64,3 +64,28 @@ def test_pressure_shift_needs_two_families():
     assert _call(_w(5.0, 30.0), _w(8.0, 38.0))[0] == 1          # intensity and position agree: harder
     assert _call(_w(8.0, 38.0), _w(5.0, 30.0))[0] == -1         # both drop: softer
     assert _call(_w(5.0, 30.0), _w(8.0, 30.0)) is None          # intensity alone is not enough
+
+
+def test_on_ball_metrics_are_physical(analysis):
+    speeds = [p.speed_kmh for p in analysis.passes if p.speed_kmh > 0]
+    assert speeds and 15 < np.median(speeds) < 90
+    assert all(s.speed_kmh < 200 for s in analysis.shots)
+    for p in analysis.passes:
+        assert p.difficulty is None or 0.0 <= p.difficulty <= 10.0
+        assert p.lines_broken == 0 or p.complete
+
+
+def test_every_pattern_reference_resolves(analysis):
+    ids = {p.id for p in analysis.patterns}
+    events = {e["id"] for e in analysis.md.events}
+    assert len(ids) == len(analysis.patterns)
+    for p in analysis.patterns:
+        assert set(p.evidence.patterns) <= ids
+        assert set(p.evidence.events) <= events
+
+
+def test_match_state_is_bounded(analysis):
+    assert analysis.state
+    for s in analysis.state:
+        assert 0 <= s.chaos <= 100 and all(0 <= c <= 100 for c in s.control)
+        assert s.label == "chaotic" or s.label == "balanced" or s.label.endswith("in control")

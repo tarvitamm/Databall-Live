@@ -1,0 +1,20 @@
+{
+  "features": [
+    "distance/20",
+    "forward/20",
+    "passer_space/5",
+    "lane_defenders",
+    "lofted"
+  ],
+  "weights": [
+    0.52533,
+    1.41427,
+    -0.5195,
+    0.70872,
+    -0.64636,
+    -2.37818
+  ],
+  "samples": 8939,
+  "base_rate": 0.7349,
+  "auc_train": 0.799
+}

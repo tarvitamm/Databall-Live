@@ -10,7 +10,7 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 | --- | --- |
 | Data contracts (`src/blindside/contracts.py`) | Done: events, tracking, metadata, hidden truth, patterns, insights, overlay packets, viewer profiles |
 | Simulator v1 (`src/blindside/sim`) | Done: 22 agents at 10 Hz, passing, shots, offside, pressing, box marking, clearances, off-ball runs with decoy intent and follow/hold marking choices, fatigue, scripted scenarios |
-| Stats engine (`src/blindside/stats`) | In progress: possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing windows and pressure shifts, evaluation against hidden truth |
+| Stats engine (`src/blindside/stats`) | Done for v1: event-based possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing shifts, counter-pressing, recovery runs, line movements, gaps between the lines, overloads, pass difficulty and xG models, speed and distance triggers, fatigue, shot chains, control vs chaos, momentum swings, evaluation against hidden truth |
 | Agents, overlays, Azure | Next |
 
 ## Run the simulator
@@ -50,8 +50,20 @@ uv run blindside-analyse data/league/m_0102 --eval
 uv run python -m blindside.stats.evaluate data/league
 ```
 
-`blindside-analyse` writes `patterns.jsonl` next to the match. The evaluation reads `truth.json` and is the only code
+`blindside-analyse` writes `patterns.jsonl` and `metrics.json` next to the match. Retrain the pass and xG models with
+`uv run python -m blindside.stats.train data/league`. The evaluation reads `truth.json` and is the only code
 that does.
+
+## Detection quality (12 simulated matches)
+
+| Measure | Score |
+| --- | --- |
+| Off-ball runs found (recall / precision) | 68% / 78% |
+| Following defender named correctly | 76% |
+| Exploited decoys flagged | 55% |
+| Scripted pressing changes detected | 4 of 5, median delay about 8 minutes |
+| Pass completion model (train AUC) | 0.80 |
+| xG model (train AUC) | 0.65 |
 
 ## Tests
 

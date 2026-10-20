@@ -1,0 +1,20 @@
+{
+  "features": [
+    "distance/10",
+    "angle",
+    "header",
+    "defenders_in_cone",
+    "pressure/5"
+  ],
+  "weights": [
+    -2.17519,
+    -0.43138,
+    0.67433,
+    -0.84532,
+    0.21038,
+    0.75702
+  ],
+  "samples": 394,
+  "base_rate": 0.1218,
+  "auc_train": 0.65
+}
