@@ -11,7 +11,9 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 | Data contracts (`src/blindside/contracts.py`) | Done: events, tracking, metadata, hidden truth, patterns, insights, overlay packets, viewer profiles |
 | Simulator v1 (`src/blindside/sim`) | Done: 22 agents at 10 Hz, passing, shots, offside, pressing, box marking, clearances, off-ball runs with decoy intent and follow/hold marking choices, fatigue, scripted scenarios |
 | Stats engine (`src/blindside/stats`) | Done for v1: event-based possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing shifts, counter-pressing, recovery runs, line movements, gaps between the lines, overloads, pass difficulty and xG models, speed and distance triggers, fatigue, shot chains, control vs chaos, momentum swings, evaluation against hidden truth |
-| Agents, overlays, Azure | Next |
+| Insight crew (`src/blindside/insights`) | Done with templates: analyst, storyteller (analyst, fan and player focus in English, Spanish and Estonian), verifier, producer with timed overlay packets, half-time and full-time recaps |
+| Live replay server, fan app and overlays | Next |
+| Microsoft Foundry, Agent Framework and Azure deployment | After the app |
 
 ## Run the simulator
 
@@ -53,6 +55,15 @@ uv run python -m blindside.stats.evaluate data/league
 `blindside-analyse` writes `patterns.jsonl` and `metrics.json` next to the match. Retrain the pass and xG models with
 `uv run python -m blindside.stats.train data/league`. The evaluation reads `truth.json` and is the only code
 that does.
+
+## Generate insights
+
+```bash
+uv run blindside-insights data/league/m_0106
+```
+
+Writes `insights.jsonl`, `variants.jsonl` (every line per persona and language) and `packets.jsonl` (timed overlays).
+Every line is checked against the facts it was built from before it is scheduled.
 
 ## Detection quality (12 simulated matches)
 

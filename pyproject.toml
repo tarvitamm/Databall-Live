@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 blindside-sim = "blindside.sim.cli:main"
 blindside-analyse = "blindside.stats.analyse:main"
+blindside-insights = "blindside.insights.pipeline:main"
 
 [dependency-groups]
 dev = [
@@ -35,3 +36,6 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/blindside/insights/templates.py" = ["E501"]

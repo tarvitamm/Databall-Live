@@ -30,6 +30,7 @@ class StateBin:
     possession_share: tuple[float, float]
     territory: tuple[float, float]
     turnovers_per_min: float
+    under_pressure_share: float
 
 
 def _tf_x(md: MatchData, xy, team: int, period: int) -> np.ndarray:
@@ -81,7 +82,7 @@ def control_and_chaos(md: MatchData, poss: Possession, passes: list[PassMetrics]
             out.append(StateBin(period=period, t_end=float(hi), control=control, chaos=chaos, label=label,
                                 possession_share=(round(share[0], 2), round(share[1], 2)),
                                 territory=(round(territory[0], 2), round(territory[1], 2)),
-                                turnovers_per_min=round(turnovers, 2)))
+                                turnovers_per_min=round(turnovers, 2), under_pressure_share=round(under, 2)))
     return out
 
 
