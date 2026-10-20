@@ -1,0 +1,37 @@
+[project]
+name = "blindside"
+version = "0.1.0"
+description = "Explainable off-the-ball match intelligence from synthetic football data"
+authors = [
+    { name = "Tarvi Tamm" }
+]
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "numpy>=2.0",
+    "pydantic>=2.7",
+    "scipy>=1.18.1",
+]
+
+[project.scripts]
+blindside-sim = "blindside.sim.cli:main"
+blindside-analyse = "blindside.stats.analyse:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
