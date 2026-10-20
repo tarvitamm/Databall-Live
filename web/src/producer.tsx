@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { api, openSocket, type Stream } from './api'
-import { MatchClock } from './clock'
-import { ScoreBug } from './components/Broadcast'
-import { Pitch } from './components/Pitch'
-import { Timeline } from './components/Timeline'
-import { clock } from './i18n'
-import type { FrameMsg, MatchDetail, StateMsg } from './types'
+import { useEffect, useRef, useState } from 'react'
+import { openSocket, type Stream } from './api'
+import { clock, type Strings } from './i18n'
+import type { MatchDetail } from './types'
+import type { PitchMaps } from './pitchMaps'
+import type { Broadcast } from './useBroadcast'
+import { Stage } from './views'
 
 type Status = 'queued' | 'awaiting_approval' | 'aired' | 'rejected' | 'expired' | 'killed' | 'switched_off'
 
 interface Line {
   headline: string
   body?: string
+  source?: string
 }
 
 interface Insight {
@@ -26,7 +26,8 @@ interface Insight {
   confidence: number
   significance: number
   entities: { teams?: string[]; players?: string[] }
-  model: { analyst?: string; prompt_version?: string }
+  model: { analyst?: string; storyteller?: string; prompt_version?: string }
+  tools: string[]
   lines: Record<string, Record<string, Line>>
   status: Status
 }
@@ -36,6 +37,18 @@ interface Control {
   killed: boolean
   disabled: string[]
   unreliable: number
+  model: boolean
+}
+
+interface Usage {
+  calls: number
+  cached: number
+  failures: number
+  timeouts: number
+  input_tokens: number
+  output_tokens: number
+  mean_s: number
+  cost_usd: number
 }
 
 interface CrewReport {
@@ -43,6 +56,7 @@ interface CrewReport {
   insights: number
   rejections: number
   fallbacks: number
+  model: (Usage & { model: string; agents: Record<string, Usage> }) | null
 }
 
 interface Note {
@@ -65,14 +79,15 @@ const TYPES: [string, string][] = [
   ['speed_tag', 'Speed tags'],
 ]
 
-const AGENTS: [string, string][] = [
-  ['moment_router', 'Moment router'],
-  ['tactical_analyst', 'Tactical analyst'],
-  ['player_lens', 'Player lens'],
-  ['editor', 'Editor'],
-  ['storyteller', 'Storyteller'],
-  ['verifier', 'Verifier'],
-  ['producer', 'Producer'],
+const AGENTS: [string, string, boolean][] = [
+  ['moment_router', 'Moment router', false],
+  ['tactical_analyst', 'Tactical analyst', true],
+  ['player_lens', 'Player lens', true],
+  ['editor', 'Editor', false],
+  ['storyteller', 'Storyteller', true],
+  ['verifier', 'Verifier', false],
+  ['recapper', 'Recapper', true],
+  ['producer', 'Producer', false],
 ]
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -85,37 +100,22 @@ const STATUS_LABEL: Record<Status, string> = {
   switched_off: 'Switched off',
 }
 
-function useConsole(match: MatchDetail | null) {
-  const clockRef = useMemo(() => new MatchClock(), [])
+const OFF: Control = { mode: 'auto', killed: false, disabled: [], unreliable: 0, model: false }
+
+function useConsole(match: MatchDetail, room: string) {
   const socket = useRef<Stream | null>(null)
-  const [now, setNow] = useState({ period: 1, t: 0 })
-  const [playing, setPlaying] = useState(false)
-  const [speed, setSpeed] = useState(1)
-  const [control, setControl] = useState<Control>({ mode: 'auto', killed: false, disabled: [], unreliable: 0 })
+  const [control, setControl] = useState<Control>(OFF)
   const [insights, setInsights] = useState<Record<string, Insight>>({})
   const [crew, setCrew] = useState<CrewReport | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
-  const [state, setState] = useState<StateMsg | null>(null)
 
   useEffect(() => {
-    if (!match) return
-    let second = -1
     let noteId = 0
-    const s = openSocket(`/ws/console/${match.id}`, (msg) => {
+    const s = openSocket<Record<string, unknown>>(`/ws/console/${match.id}`, { room }, (msg) => {
       const kind = msg.kind as string
-      if (kind === 'frame') {
-        const f = msg as unknown as FrameMsg
-        clockRef.push(f)
-        if (Math.floor(f.t) !== second) {
-          second = Math.floor(f.t)
-          setNow({ period: f.period, t: f.t })
-        }
-      } else if (kind === 'hello') {
-        setPlaying(Boolean(msg.playing))
-        setSpeed(Number(msg.speed))
+      if (kind === 'hello') {
         setControl(msg.control as Control)
         setCrew(msg.crew as CrewReport)
-        setNow({ period: Number(msg.period), t: Number(msg.t) })
         const list = msg.insights as Insight[]
         setInsights(Object.fromEntries(list.map((i) => [i.id, i])))
         const saved = (msg.notes as Omit<Note, 'id'>[] | undefined) ?? []
@@ -133,46 +133,40 @@ function useConsole(match: MatchDetail | null) {
         const note = { id: noteId, executor: msg.executor as string, note: msg.note as string, detail: msg.detail as Record<string, unknown> }
         setNotes((all) => [note, ...all].slice(0, 30))
       } else if (kind === 'control') {
-        setPlaying(Boolean(msg.playing))
-        setSpeed(Number(msg.speed))
         setControl(msg.control as Control)
-      } else if (kind === 'state') {
-        setState(msg as unknown as StateMsg)
-      } else if (kind === 'playing') {
-        setPlaying(Boolean(msg.playing))
       }
     })
     socket.current = s
     return () => s.close()
-  }, [match, clockRef])
+  }, [match.id, room])
 
   const send = (msg: object) => socket.current?.send(msg)
-  return { clock: clockRef, now, playing, speed, control, insights, crew, notes, state, send }
+  return { control, insights, crew, notes, send }
 }
 
-function SignalList({ signals }: { signals: Insight['signals'] }) {
-  return (
-    <dl className="signals">
-      {Object.entries(signals).map(([k, v]) => (
-        <div key={k}>
-          <dt>{k.replace(/_/g, ' ')}</dt>
-          <dd>{Array.isArray(v) ? `${v[0]} → ${v[1]}` : v}</dd>
-        </div>
-      ))}
-    </dl>
-  )
+function sourceLabel(source: string | undefined, model: string): string {
+  if (source === 'model') return model
+  if (source === 'cached') return `${model}, cached`
+  if (source === 'fallback') return 'template fallback'
+  return 'template'
 }
 
-function InsightCard({ ins, names, onApprove, onReject, supervised }: {
+function byModel(source: string | undefined): boolean {
+  return source === 'model' || source === 'cached'
+}
+
+function InsightCard({ ins, names, onApprove, onReject, supervised, model }: {
   ins: Insight
   names: Record<string, string>
   onApprove: () => void
   onReject: () => void
   supervised: boolean
+  model: string
 }) {
   const [open, setOpen] = useState(false)
   const analyst = ins.lines.en?.analyst
   const decided = ['aired', 'rejected', 'expired', 'killed', 'switched_off'].includes(ins.status)
+  const explained = Boolean(ins.model.analyst && ins.model.analyst !== 'template')
   return (
     <article className={`insight-card status-${ins.status}`}>
       <header>
@@ -180,12 +174,15 @@ function InsightCard({ ins, names, onApprove, onReject, supervised }: {
         <span className="type-chip">{ins.type.replace(/_/g, ' ')}</span>
         <span className={`status-chip ${ins.status}`}>{STATUS_LABEL[ins.status] ?? ins.status}</span>
       </header>
-      <h4>{ins.claim}</h4>
+      <h4>{analyst?.headline ?? ins.claim}</h4>
       {analyst?.body && <p>{analyst.body}</p>}
+      <p className="reasoning">
+        <b>Why:</b> {ins.mechanism}
+      </p>
       <div className="meta">
+        <span className={explained ? 'source model' : 'source'}>analyst: {explained ? ins.model.analyst : 'template'}</span>
+        <span className={byModel(analyst?.source) ? 'source model' : 'source'}>lines: {sourceLabel(analyst?.source, model)}</span>
         <span>confidence {Math.round(ins.confidence * 100)}%</span>
-        <span>significance {Math.round(ins.significance * 100)}%</span>
-        <span>{ins.model.analyst}</span>
         {ins.entities.players?.length ? <span>{ins.entities.players.map((p) => names[p] ?? p).join(', ')}</span> : null}
       </div>
       {supervised && !decided && (
@@ -199,18 +196,28 @@ function InsightCard({ ins, names, onApprove, onReject, supervised }: {
         </div>
       )}
       <button className="link" onClick={() => setOpen(!open)}>
-        {open ? 'Hide details' : 'Signals and languages'}
+        {open ? 'Hide details' : 'Reasoning, tools and every language'}
       </button>
       {open && (
         <div className="details">
-          <SignalList signals={ins.signals} />
+          <p>
+            <b>Claim:</b> {ins.claim}
+          </p>
+          <p>
+            <b>Effect:</b> {ins.consequence}
+          </p>
+          {ins.tools.length > 0 && (
+            <p className="tools">
+              <b>Tools called:</b> {ins.tools.join(' · ')}
+            </p>
+          )}
           {Object.entries(ins.lines).map(([lang, personas]) => (
             <div key={lang} className="lang-block">
               <strong>{lang.toUpperCase()}</strong>
               {Object.entries(personas).map(([persona, line]) => (
                 <p key={persona}>
                   <em>{persona.replace('_', ' ')}</em> {line.headline}
-                  {line.body ? ` · ${line.body}` : ''}
+                  {line.body ? ` · ${line.body}` : ''} <span className="muted">({sourceLabel(line.source, model)})</span>
                 </p>
               ))}
             </div>
@@ -221,61 +228,71 @@ function InsightCard({ ins, names, onApprove, onReject, supervised }: {
   )
 }
 
-export function ProducerView({ id }: { id: string }) {
-  const [match, setMatch] = useState<MatchDetail | null>(null)
-  useEffect(() => {
-    api.match(id).then(setMatch)
-  }, [id])
-  const c = useConsole(match)
-  const maps = useMemo(() => {
-    const teamOf: Record<string, number> = {}
-    const shirts: Record<string, number> = {}
-    const names: Record<string, string> = {}
-    for (const p of match?.players ?? []) {
-      teamOf[p.id] = p.team === match?.home.code ? 0 : 1
-      shirts[p.id] = p.shirt
-      names[p.id] = p.name.split(' ').slice(-1)[0]
-    }
-    const colours: [[string, string], [string, string]] = [
-      match?.home.colours ?? ['#2563eb', '#ffffff'],
-      match?.away.colours ?? ['#dc2626', '#ffffff'],
-    ]
-    return { teamOf, shirts, names, colours }
-  }, [match])
-  if (!match) return <main className="loading">Blindside</main>
+function NoteItem({ n }: { n: Note }) {
+  const d = n.detail
+  if (n.note === 'rejected') {
+    const what = d.target === 'explanation' ? 'Explanation rejected' : d.target === 'recap' ? 'Recap line rejected' : 'Line rejected'
+    return (
+      <li className="rejected">
+        <strong>{what}</strong>
+        <span>
+          {String(d.insight ?? d.body)}
+          {d.lang ? ` · ${String(d.lang)} · ${String(d.persona)}` : ''} · attempt {String(d.attempt)}
+        </span>
+        <span className="muted">{(d.reasons as string[]).join('; ')}</span>
+        {d.target !== 'recap' && <q>{String(d.body)}</q>}
+      </li>
+    )
+  }
+  if (n.note === 'fallback') {
+    return (
+      <li className="fallback">
+        <strong>Template fallback</strong>
+        <span>
+          {n.executor.replace('_', ' ')}
+          {d.type ? ` · ${String(d.type).replace(/_/g, ' ')}` : ''}
+          {d.why ? ` · ${String(d.why)}` : ''}
+        </span>
+      </li>
+    )
+  }
+  return (
+    <li>
+      <strong>Dropped repeat</strong>
+    </li>
+  )
+}
 
-  const all = Object.values(c.insights).sort((a, b) => b.period - a.period || b.t - a.t)
+interface ProducerProps {
+  match: MatchDetail
+  room: string
+  b: Broadcast
+  maps: PitchMaps
+  s: Strings
+}
+
+export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
+  const c = useConsole(match, room)
+  const all = Object.values(c.insights).sort((x, y) => y.period - x.period || y.t - x.t)
   const waiting = all.filter((i) => i.status === 'awaiting_approval')
   const rundown = all.filter((i) => i.status !== 'awaiting_approval')
   const supervised = c.control.mode === 'supervised'
-  const base = `${location.pathname}?match=${id}&live=1`
+  const usage = c.crew?.model
+  const model = usage?.model ?? 'model'
+  const card = (ins: Insight) => (
+    <InsightCard
+      key={ins.id}
+      ins={ins}
+      names={maps.names}
+      model={model}
+      supervised={supervised}
+      onApprove={() => c.send({ action: 'approve', insight: ins.id })}
+      onReject={() => c.send({ action: 'reject', insight: ins.id })}
+    />
+  )
 
   return (
-    <main className="producer">
-      <header className="topbar">
-        <span className="console-title">Producer</span>
-        <ScoreBug match={match} now={c.now} state={c.state} />
-        <div className="transport">
-          <button className="primary" onClick={() => c.send({ action: c.playing ? 'pause' : 'play' })}>
-            {c.playing ? 'Pause' : 'Start broadcast'}
-          </button>
-          <div className="segmented small">
-            {[1, 2, 5, 10].map((v) => (
-              <button key={v} className={c.speed === v ? 'on' : ''} onClick={() => c.send({ action: 'speed', value: v })}>
-                {v}x
-              </button>
-            ))}
-          </div>
-          <a className="ghost-link" href={base} target="_blank" rel="noreferrer">
-            Fan view
-          </a>
-          <a className="ghost-link" href={`${base}&view=overlay`} target="_blank" rel="noreferrer">
-            Overlay
-          </a>
-        </div>
-        <Timeline match={match} now={c.now} onSeek={(period, t) => c.send({ action: 'seek', period, t })} />
-      </header>
-
+    <div className="producer">
       <section className="console-controls">
         <div className="segmented">
           <button className={!supervised ? 'on' : ''} onClick={() => c.send({ action: 'mode', value: 'auto' })}>
@@ -285,14 +302,19 @@ export function ProducerView({ id }: { id: string }) {
             Approve before air
           </button>
         </div>
-        <button className={`kill ${c.control.killed ? 'on' : ''}`} onClick={() => c.send({ action: 'kill', value: !c.control.killed })}>
-          {c.control.killed ? 'Graphics off: restore' : 'Kill all graphics'}
-        </button>
+        {usage && (
+          <button className={`model ${c.control.model ? 'on' : ''}`} onClick={() => c.send({ action: 'model', value: !c.control.model })}>
+            {c.control.model ? `Model on: ${model}` : 'Model cut: templates only'}
+          </button>
+        )}
         <button
           className={`inject ${c.control.unreliable > 0 ? 'on' : ''}`}
           onClick={() => c.send({ action: 'unreliable', value: c.control.unreliable > 0 ? 0 : 0.3 })}
         >
           {c.control.unreliable > 0 ? `Storyteller errors: on (${Math.round(c.control.unreliable * 100)}%)` : 'Inject storyteller errors'}
+        </button>
+        <button className={`kill ${c.control.killed ? 'on' : ''}`} onClick={() => c.send({ action: 'kill', value: !c.control.killed })}>
+          {c.control.killed ? 'Graphics off: restore' : 'Kill all graphics'}
         </button>
         <div className="type-toggles">
           {TYPES.map(([type, label]) => {
@@ -309,13 +331,10 @@ export function ProducerView({ id }: { id: string }) {
       <div className="console-grid">
         <section className="panel">
           <h3>Program</h3>
-          <Pitch clock={c.clock} {...maps} followed={[]} highlight={[]} tags={[]} trails={[]} />
-          <div className="state-foot">
-            <span>{c.state?.label ?? 'balanced'}</span>
-            <span>
-              xG {c.state?.xg[match.home.code]?.toFixed(2) ?? '0.00'} - {c.state?.xg[match.away.code]?.toFixed(2) ?? '0.00'}
-            </span>
-          </div>
+          <Stage match={match} b={b} maps={maps} s={s} lang="en" />
+          <a className="ghost-link overlay-link" href={`${location.pathname}?match=${match.id}&view=overlay&room=${room}`} target="_blank" rel="noreferrer">
+            Open the clean overlay for OBS or vMix
+          </a>
         </section>
 
         <section className="panel rundown">
@@ -323,30 +342,12 @@ export function ProducerView({ id }: { id: string }) {
             <>
               <h3>Needs approval ({waiting.length})</h3>
               {waiting.length === 0 && <p className="muted">Nothing waiting. New insights stop here until you approve them.</p>}
-              {waiting.map((ins) => (
-                <InsightCard
-                  key={ins.id}
-                  ins={ins}
-                  names={maps.names}
-                  supervised
-                  onApprove={() => c.send({ action: 'approve', insight: ins.id })}
-                  onReject={() => c.send({ action: 'reject', insight: ins.id })}
-                />
-              ))}
+              {waiting.map(card)}
             </>
           )}
           <h3>Rundown</h3>
           {rundown.length === 0 && <p className="muted">Insights from the crew appear here as the match plays.</p>}
-          {rundown.map((ins) => (
-            <InsightCard
-              key={ins.id}
-              ins={ins}
-              names={maps.names}
-              supervised={supervised}
-              onApprove={() => c.send({ action: 'approve', insight: ins.id })}
-              onReject={() => c.send({ action: 'reject', insight: ins.id })}
-            />
-          ))}
+          {rundown.map(card)}
         </section>
 
         <section className="panel crew">
@@ -358,51 +359,61 @@ export function ProducerView({ id }: { id: string }) {
             </div>
             <div>
               <b>{c.crew?.rejections ?? 0}</b>
-              <span>lines rejected</span>
+              <span>rejected</span>
             </div>
             <div>
               <b>{c.crew?.fallbacks ?? 0}</b>
-              <span>template fallbacks</span>
+              <span>fallbacks</span>
             </div>
           </div>
+          {usage && (
+            <div className="crew-counters">
+              <div>
+                <b>{usage.calls}</b>
+                <span>model calls</span>
+              </div>
+              <div>
+                <b>{usage.cached}</b>
+                <span>from cache</span>
+              </div>
+              <div>
+                <b>${usage.cost_usd.toFixed(3)}</b>
+                <span>credit used</span>
+              </div>
+            </div>
+          )}
           <table>
             <thead>
               <tr>
                 <th>Agent</th>
-                <th>Calls</th>
+                <th>Runs</th>
                 <th>Time</th>
+                <th>Model</th>
               </tr>
             </thead>
             <tbody>
-              {AGENTS.map(([key, label]) => (
-                <tr key={key}>
-                  <td>{label}</td>
-                  <td>{c.crew?.executors[key]?.calls ?? 0}</td>
-                  <td>{(c.crew?.executors[key]?.ms ?? 0).toFixed(1)} ms</td>
-                </tr>
-              ))}
+              {AGENTS.map(([key, label, usesModel]) => {
+                const u = usage?.agents[key]
+                return (
+                  <tr key={key}>
+                    <td>{label}</td>
+                    <td>{c.crew?.executors[key]?.calls ?? 0}</td>
+                    <td>{((c.crew?.executors[key]?.ms ?? 0) / 1000).toFixed(1)} s</td>
+                    <td className="muted">{usesModel ? (u ? `${u.calls} calls, ${u.cached} cached` : '-') : 'rules'}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
           <h4>Crew log</h4>
-          {c.notes.length === 0 && <p className="muted">No rejections. Turn on storyteller errors to see the verifier at work.</p>}
+          {c.notes.length === 0 && <p className="muted">No rejections yet. Inject storyteller errors or cut the model to see recovery.</p>}
           <ul className="notes">
             {c.notes.map((n) => (
-              <li key={n.id} className={n.note}>
-                <strong>{n.note === 'rejected' ? 'Rejected' : n.note === 'fallback' ? 'Template fallback' : 'Dropped repeat'}</strong>
-                {n.note === 'rejected' && (
-                  <>
-                    <span>
-                      {String(n.detail.insight)} · {String(n.detail.lang)} · {String(n.detail.persona)} · attempt {String(n.detail.attempt)}
-                    </span>
-                    <span className="muted">{(n.detail.reasons as string[]).join('; ')}</span>
-                    <q>{String(n.detail.body)}</q>
-                  </>
-                )}
-              </li>
+              <NoteItem key={n.id} n={n} />
             ))}
           </ul>
         </section>
       </div>
-    </main>
+    </div>
   )
 }

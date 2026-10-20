@@ -8,6 +8,7 @@ async function get<T>(path: string, params: Record<string, string | number> = {}
 }
 
 export const api = {
+  status: () => get<{ model: string | null }>('/api/status'),
   matches: () => get<MatchSummary[]>('/api/matches'),
   match: (id: string) => get<MatchDetail>(`/api/matches/${id}`),
   player: (id: string, pid: string, period: number, t: number) =>
@@ -18,43 +19,32 @@ export const api = {
     get<{ frames: FrameMsg[] }>(`/api/matches/${id}/replay`, { period, start, end }),
 }
 
-export function openSocket(path: string, onMessage: (msg: Record<string, unknown>) => void): Stream {
-  const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
-  const ws = new WebSocket(`${scheme}://${location.host}${path}`)
-  ws.onmessage = (ev) => onMessage(JSON.parse(ev.data) as Record<string, unknown>)
-  return {
-    send: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)),
-    close: () => ws.close(),
-  }
-}
-
 export interface Stream {
   send: (msg: object) => void
   close: () => void
 }
 
-export function openStream(
-  id: string,
-  profile: Profile,
-  start: { period: number; t: number; speed: number },
-  onMessage: (msg: ServerMsg) => void,
-  live = false,
-): Stream {
-  const params = new URLSearchParams({
-    mode: profile.mode,
-    lang: profile.lang,
-    clubs: profile.clubs.join(','),
-    players: profile.players.join(','),
-    density: profile.density,
-    period: String(start.period),
-    t: String(start.t),
-    speed: String(start.speed),
-  })
+export function openSocket<T>(path: string, params: Record<string, string>, onMessage: (msg: T) => void): Stream {
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
-  const ws = new WebSocket(`${scheme}://${location.host}/ws/${live ? 'live/' : ''}${id}?${params}`)
-  ws.onmessage = (ev) => onMessage(JSON.parse(ev.data) as ServerMsg)
+  const ws = new WebSocket(`${scheme}://${location.host}${path}?${new URLSearchParams(params)}`)
+  ws.onmessage = (ev) => onMessage(JSON.parse(ev.data) as T)
   return {
     send: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)),
     close: () => ws.close(),
   }
+}
+
+export function openBroadcast(id: string, room: string, profile: Profile, onMessage: (msg: ServerMsg) => void): Stream {
+  return openSocket<ServerMsg>(
+    `/ws/live/${id}`,
+    {
+      room,
+      mode: profile.mode,
+      lang: profile.lang,
+      clubs: profile.clubs.join(','),
+      players: profile.players.join(','),
+      density: profile.density,
+    },
+    onMessage,
+  )
 }

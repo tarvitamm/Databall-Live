@@ -6,6 +6,11 @@ export class MatchClock {
   prevAt = 0
   curAt = 0
 
+  reset(): void {
+    this.prev = null
+    this.cur = null
+  }
+
   push(frame: FrameMsg): void {
     this.prev = this.cur
     this.prevAt = this.curAt

@@ -1,4 +1,5 @@
 export type Mode = 'fan' | 'analyst' | 'player_focus'
+export type View = 'fan' | 'analyst' | 'player' | 'producer'
 export type Lang = 'en' | 'es' | 'et'
 export type Density = 'low' | 'medium' | 'high'
 
@@ -59,6 +60,8 @@ export interface Packet {
     significance?: number
     confidence?: number
     signals?: Record<string, number | number[]>
+    source?: string
+    why?: { claim: string; mechanism: string; consequence: string; analyst?: string }
   }
   viz?: { kind: string; window: [number, number] }
 }
@@ -90,6 +93,7 @@ export interface PlayerStats {
   passes: number
   passes_complete: number
   shots: number
+  patterns: { id: string; type: string; period: number; t: number }[]
 }
 
 export interface CatchUp {
@@ -107,4 +111,10 @@ export interface Profile {
   density: Density
 }
 
-export type ServerMsg = FrameMsg | Packet | StateMsg | { kind: 'hello' | 'end' | 'clear'; playing?: boolean }
+export interface TransportMsg {
+  kind: 'hello' | 'transport'
+  playing: boolean
+  speed: number
+}
+
+export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | { kind: 'end' | 'clear' }

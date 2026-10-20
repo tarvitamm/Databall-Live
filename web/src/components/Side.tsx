@@ -122,7 +122,22 @@ export function PlayerPanel({ match, pid, now, s }: { match: MatchDetail; pid: s
             <dd>{stats.sprints}</dd>
             <dt>{s.topSpeed}</dt>
             <dd>{stats.top_speed_kmh} km/h</dd>
+            <dt>{s.shots}</dt>
+            <dd>{stats.shots}</dd>
           </dl>
+          <h4>{s.theirMoments}</h4>
+          {stats.patterns.length === 0 && <p className="muted">{s.noMoments}</p>}
+          <ul className="moments-list">
+            {stats.patterns
+              .slice(-8)
+              .reverse()
+              .map((m) => (
+                <li key={m.id}>
+                  <span className="feed-time">{clock(m.period, m.t)}</span>
+                  <span>{s.pattern[m.type] ?? m.type.replace(/_/g, ' ')}</span>
+                </li>
+              ))}
+          </ul>
         </>
       )}
     </section>

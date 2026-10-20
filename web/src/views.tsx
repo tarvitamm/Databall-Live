@@ -1,140 +1,195 @@
-import { useEffect, useMemo, useState } from 'react'
-import { api } from './api'
+import { useState } from 'react'
 import { Cards, LowerThird, ScoreBug } from './components/Broadcast'
-import { Controls } from './components/Controls'
 import { CatchUpModal, RecapPanel, ReplayModal } from './components/Modals'
 import { Pitch } from './components/Pitch'
 import { Feed, MatchState, PlayerPanel } from './components/Side'
-import { Timeline } from './components/Timeline'
-import { strings, type Strings } from './i18n'
-import type { MatchDetail, MatchSummary, Packet, Profile } from './types'
-import { useMatchStream } from './useMatchStream'
+import { clock, type Strings } from './i18n'
+import type { Lang, MatchDetail, Packet } from './types'
+import type { PitchMaps } from './pitchMaps'
+import type { Broadcast } from './useBroadcast'
 
-function useMatch(id: string) {
-  const [match, setMatch] = useState<MatchDetail | null>(null)
-  useEffect(() => {
-    api.match(id).then(setMatch)
-  }, [id])
-  return match
+interface ViewProps {
+  match: MatchDetail
+  b: Broadcast
+  maps: PitchMaps
+  s: Strings
+  lang: Lang
 }
 
-function usePitchMaps(match: MatchDetail | null) {
-  return useMemo(() => {
-    const teamOf: Record<string, number> = {}
-    const shirts: Record<string, number> = {}
-    const names: Record<string, string> = {}
-    for (const p of match?.players ?? []) {
-      teamOf[p.id] = p.team === match?.home.code ? 0 : 1
-      shirts[p.id] = p.shirt
-      names[p.id] = p.name.split(' ').slice(-1)[0]
-    }
-    const colours: [[string, string], [string, string]] = [
-      match?.home.colours ?? ['#0b3d91', '#ffffff'],
-      match?.away.colours ?? ['#b22222', '#ffffff'],
-    ]
-    return { teamOf, shirts, names, colours }
-  }, [match])
-}
-
-export function MatchPicker({ s, onPick }: { s: Strings; onPick: (id: string) => void }) {
-  const [matches, setMatches] = useState<MatchSummary[]>([])
-  useEffect(() => {
-    api.matches().then(setMatches)
-  }, [])
+export function Stage({ match, b, maps, s, followed = [] }: ViewProps & { followed?: string[] }) {
+  const highlight = b.lowerThird?.data.players?.slice(0, 3) ?? []
   return (
-    <main className="picker">
-      <header className="brand">
-        <h1>Blindside</h1>
-        <p>{s.tagline}</p>
-      </header>
-      <h2>{s.pick}</h2>
-      <div className="match-grid">
-        {matches.map((m) => (
-          <button key={m.id} className="match-card" onClick={() => onPick(m.id)}>
-            <span className="eyebrow">{s.scenario[m.scenario as keyof Strings['scenario']] ?? m.scenario}</span>
-            <span className="mc-row">
-              <i style={{ background: m.home.colours[0] }} />
-              {m.home.name}
-              <b>{m.score[0]}</b>
-            </span>
-            <span className="mc-row">
-              <i style={{ background: m.away.colours[0] }} />
-              {m.away.name}
-              <b>{m.score[1]}</b>
-            </span>
-            <span className="muted">{m.venue}</span>
-          </button>
-        ))}
-      </div>
-    </main>
-  )
-}
-
-interface MatchViewProps {
-  id: string
-  profile: Profile
-  onProfile: (p: Profile) => void
-  onBack: () => void
-  live?: boolean
-}
-
-export function MatchView({ id, profile, onProfile, onBack, live: isLive = false }: MatchViewProps) {
-  const match = useMatch(id)
-  const [speed, setSpeed] = useState(1)
-  const [why, setWhy] = useState<Packet | null>(null)
-  const [catchUp, setCatchUp] = useState(false)
-  const live = useMatchStream(match, profile, speed, isLive)
-  const maps = usePitchMaps(match)
-  const s = strings(profile.lang)
-  if (!match) return <main className="loading">Blindside</main>
-  const highlight = live.lowerThird?.data.players?.slice(0, 3) ?? []
-  const focus = profile.players[0]
-  return (
-    <main className="match">
-      <header className="topbar">
-        <button className="ghost" onClick={onBack}>
-          Blindside
+    <div className="pitch-wrap">
+      <Pitch clock={b.clock} {...maps} followed={followed} highlight={highlight} tags={b.tags} trails={b.trails} />
+      <Cards cards={b.cards} />
+      <LowerThird packet={b.lowerThird} match={match} />
+      {b.recap && <RecapPanel packet={b.recap} s={s} onClose={b.dismissRecap} />}
+      {!b.playing && (
+        <button className="start" onClick={b.play}>
+          <span aria-hidden>▶</span>
+          {b.now.period === 1 && b.now.t < 1 ? s.startHint : s.play}
         </button>
-        <ScoreBug match={match} now={live.now} state={live.state} />
-        {isLive && <span className="live-badge">{s.live}</span>}
-        <Controls match={match} profile={profile} speed={speed} s={s} onProfile={onProfile} onSpeed={setSpeed} onCatchUp={() => setCatchUp(true)} live={isLive} />
-        {!isLive && <Timeline match={match} now={live.now} onSeek={live.seek} />}
-      </header>
-      <div className="stage">
-        <div className="pitch-wrap">
-          <Pitch clock={live.clock} {...maps} followed={profile.players} highlight={highlight} tags={live.tags} trails={live.trails} />
-          <Cards cards={live.cards} />
-          <LowerThird packet={live.lowerThird} match={match} />
-          {live.recap && <RecapPanel packet={live.recap} s={s} onClose={live.dismissRecap} />}
-          {live.waiting && <div className="waiting">{s.waiting}</div>}
-        </div>
-        <aside className="side">
-          <MatchState match={match} state={live.state} s={s} />
-          {focus && <PlayerPanel match={match} pid={focus} now={live.now} s={s} />}
-          {profile.mode === 'player_focus' && !focus && <p className="panel muted">{s.pickPlayer}</p>}
-          <Feed items={live.feed} s={s} onWhy={setWhy} />
-        </aside>
-      </div>
-      {why && <ReplayModal packet={why} match={match} {...maps} s={s} onClose={() => setWhy(null)} />}
-      {catchUp && <CatchUpModal match={match} now={live.now} lang={profile.lang} s={s} onClose={() => setCatchUp(false)} />}
-    </main>
+      )}
+    </div>
   )
 }
 
-export function OverlayView({ id, profile, live: isLive = false }: { id: string; profile: Profile; live?: boolean }) {
-  const match = useMatch(id)
-  const live = useMatchStream(match, profile, 1, isLive)
-  if (!match) return null
+function useReplay(match: MatchDetail, maps: PitchMaps, s: Strings) {
+  const [packet, setPacket] = useState<Packet | null>(null)
+  const modal = packet && <ReplayModal packet={packet} match={match} {...maps} s={s} onClose={() => setPacket(null)} />
+  return { open: setPacket, modal }
+}
+
+export function FanView({ club, onClub, ...v }: ViewProps & { club: string; onClub: (code: string) => void }) {
+  const { match, b, s } = v
+  const replay = useReplay(match, v.maps, s)
+  const [catchUp, setCatchUp] = useState(false)
+  return (
+    <div className="stage">
+      <Stage {...v} />
+      <aside className="side">
+        <section className="panel picks">
+          <label>
+            <span>{s.followClub}</span>
+            <select value={club} onChange={(e) => onClub(e.target.value)}>
+              <option value="">{s.bothClubs}</option>
+              {[match.home, match.away].map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="primary" onClick={() => setCatchUp(true)}>
+            {s.catchUp}
+          </button>
+        </section>
+        <MatchState match={match} state={b.state} s={s} />
+        <Feed items={b.feed} s={s} onWhy={replay.open} />
+      </aside>
+      {replay.modal}
+      {catchUp && <CatchUpModal match={match} now={b.now} lang={v.lang} s={s} onClose={() => setCatchUp(false)} />}
+    </div>
+  )
+}
+
+function Signals({ signals }: { signals: Record<string, number | number[]> }) {
+  return (
+    <dl className="signals">
+      {Object.entries(signals).map(([k, v]) => (
+        <div key={k}>
+          <dt>{k.replace(/_/g, ' ')}</dt>
+          <dd>{Array.isArray(v) ? `${v[0]} → ${v[1]}` : v}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function WhyCard({ p, s, onReplay }: { p: Packet; s: Strings; onReplay: () => void }) {
+  const why = p.data.why
+  const byModel = p.data.source === 'model' || p.data.source === 'cached'
+  const analyst = why?.analyst && why.analyst !== 'template' ? why.analyst : s.template
+  return (
+    <article className="why-card">
+      <div className="feed-head">
+        <span className="feed-time">{clock(p.period, p.show_at)}</span>
+        <span className="feed-title">{p.text.headline}</span>
+      </div>
+      {p.text.body && <p>{p.text.body}</p>}
+      {why && (
+        <dl className="why">
+          <dt>
+            {s.cause} {s.inEnglish}
+          </dt>
+          <dd>{why.mechanism}</dd>
+          <dt>{s.effect}</dt>
+          <dd>{why.consequence}</dd>
+        </dl>
+      )}
+      {p.data.signals && <Signals signals={p.data.signals} />}
+      <div className="meta">
+        <span>
+          {s.confidence} {Math.round((p.data.confidence ?? 0) * 100)}%
+        </span>
+        <span className={`source ${byModel ? 'model' : ''}`}>
+          {s.writtenBy} {byModel ? analyst : s.template}
+        </span>
+        {p.viz && p.data.players?.length ? (
+          <button className="link" onClick={onReplay}>
+            {s.why}
+          </button>
+        ) : null}
+      </div>
+    </article>
+  )
+}
+
+export function AnalystView(v: ViewProps) {
+  const { b, s } = v
+  const replay = useReplay(v.match, v.maps, s)
+  return (
+    <div className="stage">
+      <Stage {...v} />
+      <aside className="side">
+        <MatchState match={v.match} state={b.state} s={s} />
+        <section className="panel explained">
+          <h3>{s.explained}</h3>
+          {b.feed.length === 0 && <p className="muted">{s.noInsights}</p>}
+          {b.feed.map((p) => (
+            <WhyCard key={p.packet} p={p} s={s} onReplay={() => replay.open(p)} />
+          ))}
+        </section>
+      </aside>
+      {replay.modal}
+    </div>
+  )
+}
+
+export function PlayerView({ player, onPlayer, ...v }: ViewProps & { player: string; onPlayer: (pid: string) => void }) {
+  const { match, b, s } = v
+  const replay = useReplay(match, v.maps, s)
+  return (
+    <div className="stage">
+      <Stage {...v} followed={player ? [player] : []} />
+      <aside className="side">
+        <section className="panel picks">
+          <label>
+            <span>{s.followPlayer}</span>
+            <select value={player} onChange={(e) => onPlayer(e.target.value)}>
+              {[match.home, match.away].map((t) => (
+                <optgroup key={t.code} label={t.name}>
+                  {match.players
+                    .filter((p) => p.team === t.code)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.shirt} {p.name}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        </section>
+        {player && <PlayerPanel match={match} pid={player} now={b.now} s={s} />}
+        <Feed items={b.feed} s={s} onWhy={replay.open} />
+      </aside>
+      {replay.modal}
+    </div>
+  )
+}
+
+export function OverlayView({ match, b }: { match: MatchDetail; b: Broadcast }) {
   return (
     <main className="overlay">
-      <ScoreBug match={match} now={live.now} state={live.state} />
-      <Cards cards={live.cards} />
+      <ScoreBug match={match} now={b.now} state={b.state} />
+      <Cards cards={b.cards} />
       <div className="overlay-tags">
-        {live.tags.map((t) => (
+        {b.tags.map((t) => (
           <span key={t.id}>{t.text}</span>
         ))}
       </div>
-      <LowerThird packet={live.lowerThird} match={match} />
+      <LowerThird packet={b.lowerThird} match={match} />
     </main>
   )
 }

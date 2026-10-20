@@ -67,99 +67,7 @@ h4 {
   color: var(--muted);
 }
 
-/* picker */
-.picker {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 48px 16px;
-}
-
-.brand h1 {
-  font-size: 56px;
-  line-height: 1;
-}
-
-.brand p {
-  color: var(--muted);
-  font-size: 18px;
-  margin: 8px 0 40px;
-}
-
-.picker h2 {
-  font-size: 22px;
-  margin-bottom: 16px;
-  color: var(--muted);
-}
-
-.match-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.match-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s;
-}
-
-.match-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-
-.mc-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.mc-row i {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-.mc-row b {
-  margin-left: auto;
-  font-family: var(--display);
-  font-size: 22px;
-}
-
 /* match */
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-
-.controls select {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 6px 8px;
-  max-width: 190px;
-}
-
 .segmented {
   display: inline-flex;
   background: var(--panel);
@@ -675,9 +583,6 @@ body:has(.overlay) {
     grid-template-columns: 1fr;
   }
 
-  .controls {
-    margin-left: 0;
-  }
 
   .lt-headline {
     font-size: 20px;
@@ -691,49 +596,7 @@ body:has(.overlay) {
 }
 
 /* live mode */
-.live-badge {
-  background: var(--hot);
-  color: #fff;
-  font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: 6px;
-  padding: 3px 10px;
-}
-
-.waiting {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(7, 11, 22, 0.75);
-  font-family: var(--display);
-  font-size: 26px;
-  color: var(--muted);
-}
-
 /* producer console */
-.producer .topbar {
-  gap: 12px;
-}
-
-.console-title {
-  font-family: var(--display);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.transport {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
 .ghost-link {
   color: var(--muted);
   border: 1px solid var(--line);
@@ -1033,5 +896,242 @@ button.inject.on {
 @media (max-width: 1200px) {
   .console-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* shell */
+.shell-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.brand-mark {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.match-select,
+.picks select {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  max-width: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.tabs button {
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  font-family: var(--display);
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+.tabs button.on {
+  background: var(--accent);
+  color: #062016;
+  font-weight: 600;
+}
+
+.matchbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.matchbar .timeline {
+  flex: 1;
+  min-width: 220px;
+  width: auto;
+}
+
+button.start {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(7, 11, 22, 0.85);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-family: var(--display);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+button.start span {
+  color: var(--accent);
+}
+
+.picks {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.picks label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.picks select {
+  color: var(--ink);
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* analyst */
+.explained {
+  max-height: calc(100vh - 360px);
+  min-height: 240px;
+  overflow-y: auto;
+}
+
+.why-card {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.why-card > p {
+  margin: 4px 0 8px;
+}
+
+.why {
+  margin: 8px 0;
+  display: block;
+}
+
+.why dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-top: 6px;
+}
+
+.why dd {
+  margin: 0;
+  color: var(--ink);
+  text-align: left;
+  font-weight: 400;
+}
+
+.source {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+
+.source.model {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* player */
+.moments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.moments-list li {
+  display: flex;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+}
+
+/* producer */
+.reasoning {
+  color: var(--muted);
+  margin: 6px 0;
+}
+
+.reasoning b,
+.details b {
+  color: var(--ink);
+}
+
+.tools {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+button.model {
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+}
+
+button.model.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.overlay-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .tabs {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .tabs button {
+    flex: 1;
+    padding: 7px 6px;
+  }
+
+  .match-select {
+    flex: 1;
+  }
+
+  .explained {
+    max-height: none;
   }
 }
