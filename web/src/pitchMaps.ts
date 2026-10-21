@@ -13,10 +13,6 @@ export function usePitchMaps(match: MatchDetail | null) {
       shirts[p.id] = p.shirt
       names[p.id] = p.name.split(' ').slice(-1)[0]
     }
-    const colours: [[string, string], [string, string]] = [
-      match?.home.colours ?? ['#2563eb', '#ffffff'],
-      match?.away.colours ?? ['#dc2626', '#ffffff'],
-    ]
-    return { teamOf, shirts, names, colours }
+    return { teamOf, shirts, names }
   }, [match])
 }

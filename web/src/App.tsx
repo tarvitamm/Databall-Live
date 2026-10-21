@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from './api'
+import { AnalystDesk } from './components/AnalystDesk'
 import { ScoreBug } from './components/Broadcast'
+import { Mark, PauseIcon, PlayIcon } from './components/Icons'
+import { FanApp, PlayerApp } from './components/MobileApp'
 import { Timeline } from './components/Timeline'
 import { strings, type Strings } from './i18n'
-import { ProducerView } from './producer'
+import { usePitchMaps } from './pitchMaps'
+import { ProducerDesk } from './producer'
+import { useTheme } from './theme'
 import type { Lang, MatchDetail, MatchSummary, Profile, View } from './types'
 import { useBroadcast } from './useBroadcast'
-import { usePitchMaps } from './pitchMaps'
-import { AnalystView, FanView, OverlayView, PlayerView } from './views'
+import { InputPanel, OverlayView } from './views'
 
 const VIEWS: View[] = ['fan', 'analyst', 'player', 'producer']
 const LANGS: Lang[] = ['en', 'es', 'et']
@@ -40,6 +44,10 @@ function tabLabel(view: View, s: Strings): string {
   return { fan: s.fan, analyst: s.analyst, player: s.player_focus, producer: s.producer }[view]
 }
 
+function outputLabel(view: View, s: Strings): string {
+  return { fan: s.outFan, analyst: s.outAnalyst, player: s.outPlayer, producer: s.outProducer }[view]
+}
+
 function defaultPlayer(match: MatchDetail | null): string {
   if (!match) return ''
   if (match.players.some((p) => p.id === STAR)) return STAR
@@ -48,6 +56,7 @@ function defaultPlayer(match: MatchDetail | null): string {
 }
 
 export default function App() {
+  const theme = useTheme()
   const query = useMemo(() => new URLSearchParams(location.search), [])
   const overlay = query.get('view') === 'overlay'
   const [matches, setMatches] = useState<MatchSummary[]>([])
@@ -109,53 +118,81 @@ export default function App() {
     setPicked('')
   }
 
+  const props = { match: current!, b, maps, s, lang }
+
   return (
     <div className="app">
-      <header className="shell-head">
-        <span className="brand-mark">Blindside</span>
-        <select className="match-select" value={id ?? ''} onChange={(e) => pickMatch(e.target.value)} aria-label={s.pick}>
-          {matches.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.home.name} v {m.away.name} · {s.scenario[m.scenario as keyof Strings['scenario']] ?? m.scenario}
-            </option>
-          ))}
-        </select>
-        <nav className="tabs">
+      <header className="topline">
+        <span className="brand">
+          <Mark />
+          <span className="wordmark">Blindside</span>
+          <span className="div" aria-hidden />
+          <select className="match-select" value={id ?? ''} onChange={(e) => pickMatch(e.target.value)} aria-label={s.pick}>
+            {matches.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.home.name} v {m.away.name} · {s.scenario[m.scenario as keyof Strings['scenario']] ?? m.scenario}
+              </option>
+            ))}
+          </select>
+        </span>
+        <nav className="tabs views">
           {VIEWS.map((v) => (
             <button key={v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>
               {tabLabel(v, s)}
             </button>
           ))}
         </nav>
-        <div className="segmented small langs">
-          {LANGS.map((l) => (
-            <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        <span className="actions">
+          <span className="tabs">
+            {LANGS.map((l) => (
+              <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </span>
+          <button className="pill" onClick={theme.toggle}>
+            {s.theme}
+          </button>
+        </span>
       </header>
 
       {current ? (
         <>
-          <div className="matchbar">
+          <div className="fbar">
             <ScoreBug match={current} now={b.now} state={b.state} />
-            <button className="primary" onClick={b.playing ? b.pause : b.play}>
-              {b.playing ? s.pause : s.play}
+            <button className="play" onClick={b.playing ? b.pause : b.play} aria-label={b.playing ? s.pause : s.play}>
+              {b.playing ? <PauseIcon /> : <PlayIcon />}
             </button>
-            <div className="segmented small">
+            <span className="tabs">
               {SPEEDS.map((v) => (
                 <button key={v} className={b.speed === v ? 'on' : ''} onClick={() => b.setSpeed(v)}>
                   {v}x
                 </button>
               ))}
-            </div>
+            </span>
             <Timeline match={current} now={b.now} onSeek={b.seek} />
           </div>
-          {view === 'fan' && <FanView match={current} b={b} maps={maps} s={s} lang={lang} club={club} onClub={setClub} />}
-          {view === 'analyst' && <AnalystView match={current} b={b} maps={maps} s={s} lang={lang} />}
-          {view === 'player' && <PlayerView match={current} b={b} maps={maps} s={s} lang={lang} player={player} onPlayer={setPicked} />}
-          {view === 'producer' && <ProducerView match={current} room={room} b={b} maps={maps} s={s} />}
+          <main className="io">
+            <section className="io-col">
+              <div className="io-label">
+                <h2>{s.input}</h2>
+                <span className="eyebrow">{s.inputSub}</span>
+              </div>
+              <InputPanel {...props} followed={view === 'player' && player ? [player] : []} />
+            </section>
+            <section className="io-col">
+              <div className="io-label">
+                <h2>{s.output}</h2>
+                <span className="eyebrow">{outputLabel(view, s)}</span>
+              </div>
+              <div className={`output-box ${view}`}>
+                {view === 'fan' && <FanApp {...props} club={club} onClub={setClub} />}
+                {view === 'analyst' && <AnalystDesk {...props} />}
+                {view === 'player' && <PlayerApp {...props} player={player} onPlayer={setPicked} />}
+                {view === 'producer' && <ProducerDesk {...props} room={room} />}
+              </div>
+            </section>
+          </main>
         </>
       ) : (
         <main className="loading">Blindside</main>

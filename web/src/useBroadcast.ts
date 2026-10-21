@@ -2,9 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, openBroadcast, type Stream } from './api'
 import { MatchClock } from './clock'
 import type { Tag, Trail } from './components/Pitch'
-import type { FrameMsg, MatchDetail, Packet, Profile, StateMsg, TransportMsg } from './types'
-
-const TRAIL_COLOURS = ['#ffd166', '#ff6b6b', '#3ddc97']
+import type { FrameMsg, HistoryMsg, MatchDetail, Packet, Profile, StateMsg, TransportMsg } from './types'
 
 type Timed<T> = T & { period: number; expires: number }
 
@@ -16,6 +14,10 @@ const PERSONAS: Record<Profile['mode'], string[]> = {
   fan: ['fan'],
   analyst: ['analyst'],
   player_focus: ['player_focus', 'fan'],
+}
+
+function newestFirst(a: Packet, b: Packet): number {
+  return b.period - a.period || b.show_at - a.show_at
 }
 
 function fits(p: Packet, profile: Profile): boolean {
@@ -61,7 +63,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
         p.data.players.slice(0, 3).map((pid, i) => ({
           player: pid,
           points: frames.map((f) => f.players[pid]).filter(Boolean),
-          colour: TRAIL_COLOURS[i % TRAIL_COLOURS.length],
+          tone: i,
           period: p.period,
           expires: p.expires_at,
         })),
@@ -84,7 +86,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
         const p = msg as Packet
         if (p.slot === 'lower_third') {
           setLowerThird(timed(p))
-          setFeed((items) => [p, ...items].slice(0, 40))
+          setFeed((items) => [{ ...p, received: Date.now() }, ...items.filter((x) => x.packet !== p.packet)].slice(0, 60))
           void loadTrails(p)
         } else if (p.slot === 'player_tag') {
           const player = p.data.players?.[0] ?? ''
@@ -93,10 +95,16 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
             { id: p.packet, player, text: p.text.headline, period: p.period, expires: p.expires_at },
           ])
         } else if (p.slot === 'panel') {
-          setRecap(timed(p))
+          setRecap(timed({ ...p, received: Date.now() }))
         } else {
           setCards((items) => [timed(p), ...items].slice(0, 3))
         }
+      } else if (msg.kind === 'history') {
+        const earlier = (msg as HistoryMsg).packets.filter((p) => p.slot === 'lower_third')
+        setFeed((items) => {
+          const seen = new Set(items.map((p) => p.packet))
+          return [...items, ...earlier.filter((p) => !seen.has(p.packet))].sort(newestFirst).slice(0, 60)
+        })
       } else if (msg.kind === 'state') {
         setState(msg as StateMsg)
       } else if (msg.kind === 'clear') {

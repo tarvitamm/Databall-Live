@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { openSocket, type Stream } from './api'
+import { Cards, LowerThird, RecapPanel } from './components/Broadcast'
+import { Pitch } from './components/Pitch'
 import { clock, type Strings } from './i18n'
-import type { MatchDetail } from './types'
 import type { PitchMaps } from './pitchMaps'
+import type { MatchDetail } from './types'
 import type { Broadcast } from './useBroadcast'
-import { Stage } from './views'
 
 type Status = 'queued' | 'awaiting_approval' | 'aired' | 'rejected' | 'expired' | 'killed' | 'switched_off'
 
@@ -271,7 +272,7 @@ interface ProducerProps {
   s: Strings
 }
 
-export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
+export function ProducerDesk({ match, room, b, maps, s }: ProducerProps) {
   const c = useConsole(match, room)
   const all = Object.values(c.insights).sort((x, y) => y.period - x.period || y.t - x.t)
   const waiting = all.filter((i) => i.status === 'awaiting_approval')
@@ -279,6 +280,7 @@ export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
   const supervised = c.control.mode === 'supervised'
   const usage = c.crew?.model
   const model = usage?.model ?? 'model'
+  const highlight = b.lowerThird?.data.players?.slice(0, 3) ?? []
   const card = (ins: Insight) => (
     <InsightCard
       key={ins.id}
@@ -293,8 +295,23 @@ export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
 
   return (
     <div className="producer">
+      <section className="monitor">
+        <div className="monitor-head">
+          <span className="onair">On air</span>
+          <a href={`${location.pathname}?match=${match.id}&view=overlay&room=${room}`} target="_blank" rel="noreferrer">
+            Clean overlay for OBS or vMix
+          </a>
+        </div>
+        <div className="monitor-screen">
+          <Pitch clock={b.clock} {...maps} followed={[]} highlight={highlight} tags={b.tags} trails={[]} />
+          <Cards cards={b.cards} />
+          <LowerThird packet={b.lowerThird} match={match} />
+          {b.recap && <RecapPanel packet={b.recap} onClose={b.dismissRecap} close={s.close} />}
+        </div>
+      </section>
+
       <section className="console-controls">
-        <div className="segmented">
+        <div className="tabs">
           <button className={!supervised ? 'on' : ''} onClick={() => c.send({ action: 'mode', value: 'auto' })}>
             Automatic
           </button>
@@ -302,20 +319,22 @@ export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
             Approve before air
           </button>
         </div>
-        {usage && (
-          <button className={`model ${c.control.model ? 'on' : ''}`} onClick={() => c.send({ action: 'model', value: !c.control.model })}>
-            {c.control.model ? `Model on: ${model}` : 'Model cut: templates only'}
+        <div className="tabs">
+          {usage && (
+            <button className={`model ${c.control.model ? 'on' : 'off'}`} onClick={() => c.send({ action: 'model', value: !c.control.model })}>
+              {c.control.model ? `Model on: ${model}` : 'Model cut: templates only'}
+            </button>
+          )}
+          <button
+            className={`inject ${c.control.unreliable > 0 ? 'on' : ''}`}
+            onClick={() => c.send({ action: 'unreliable', value: c.control.unreliable > 0 ? 0 : 0.3 })}
+          >
+            {c.control.unreliable > 0 ? `Storyteller errors on (${Math.round(c.control.unreliable * 100)}%)` : 'Inject storyteller errors'}
           </button>
-        )}
-        <button
-          className={`inject ${c.control.unreliable > 0 ? 'on' : ''}`}
-          onClick={() => c.send({ action: 'unreliable', value: c.control.unreliable > 0 ? 0 : 0.3 })}
-        >
-          {c.control.unreliable > 0 ? `Storyteller errors: on (${Math.round(c.control.unreliable * 100)}%)` : 'Inject storyteller errors'}
-        </button>
-        <button className={`kill ${c.control.killed ? 'on' : ''}`} onClick={() => c.send({ action: 'kill', value: !c.control.killed })}>
-          {c.control.killed ? 'Graphics off: restore' : 'Kill all graphics'}
-        </button>
+          <button className={`kill ${c.control.killed ? 'on' : ''}`} onClick={() => c.send({ action: 'kill', value: !c.control.killed })}>
+            {c.control.killed ? 'Graphics off: restore' : 'Kill all graphics'}
+          </button>
+        </div>
         <div className="type-toggles">
           {TYPES.map(([type, label]) => {
             const off = c.control.disabled.includes(type)
@@ -329,65 +348,45 @@ export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
       </section>
 
       <div className="console-grid">
-        <section className="panel">
-          <h3>Program</h3>
-          <Stage match={match} b={b} maps={maps} s={s} lang="en" />
-          <a className="ghost-link overlay-link" href={`${location.pathname}?match=${match.id}&view=overlay&room=${room}`} target="_blank" rel="noreferrer">
-            Open the clean overlay for OBS or vMix
-          </a>
-        </section>
-
-        <section className="panel rundown">
+        <section className="rundown">
           {supervised && (
             <>
-              <h3>Needs approval ({waiting.length})</h3>
-              {waiting.length === 0 && <p className="muted">Nothing waiting. New insights stop here until you approve them.</p>}
+              <h4>Needs approval ({waiting.length})</h4>
+              {waiting.length === 0 && <p className="empty">Nothing waiting. New insights stop here until you approve them.</p>}
               {waiting.map(card)}
             </>
           )}
-          <h3>Rundown</h3>
-          {rundown.length === 0 && <p className="muted">Insights from the crew appear here as the match plays.</p>}
+          <h4>Rundown</h4>
+          {rundown.length === 0 && <p className="empty">Insights from the crew appear here as the match plays.</p>}
           {rundown.map(card)}
         </section>
 
-        <section className="panel crew">
-          <h3>Insight crew</h3>
-          <div className="crew-counters">
+        <section className="crew">
+          <h4>Insight crew</h4>
+          <div className="strip small">
             <div>
-              <b>{c.crew?.insights ?? 0}</b>
-              <span>insights</span>
+              <div className="n">{c.crew?.insights ?? 0}</div>
+              <div className="l">insights</div>
             </div>
             <div>
-              <b>{c.crew?.rejections ?? 0}</b>
-              <span>rejected</span>
+              <div className="n">{c.crew?.rejections ?? 0}</div>
+              <div className="l">rejected</div>
             </div>
             <div>
-              <b>{c.crew?.fallbacks ?? 0}</b>
-              <span>fallbacks</span>
+              <div className="n">{c.crew?.fallbacks ?? 0}</div>
+              <div className="l">fallbacks</div>
+            </div>
+            <div>
+              <div className="n">${(usage?.cost_usd ?? 0).toFixed(3)}</div>
+              <div className="l">credit used</div>
             </div>
           </div>
-          {usage && (
-            <div className="crew-counters">
-              <div>
-                <b>{usage.calls}</b>
-                <span>model calls</span>
-              </div>
-              <div>
-                <b>{usage.cached}</b>
-                <span>from cache</span>
-              </div>
-              <div>
-                <b>${usage.cost_usd.toFixed(3)}</b>
-                <span>credit used</span>
-              </div>
-            </div>
-          )}
           <table>
             <thead>
               <tr>
                 <th>Agent</th>
-                <th>Runs</th>
-                <th>Time</th>
+                <th className="num">Runs</th>
+                <th className="num">Time</th>
                 <th>Model</th>
               </tr>
             </thead>
@@ -396,17 +395,17 @@ export function ProducerView({ match, room, b, maps, s }: ProducerProps) {
                 const u = usage?.agents[key]
                 return (
                   <tr key={key}>
-                    <td>{label}</td>
-                    <td>{c.crew?.executors[key]?.calls ?? 0}</td>
-                    <td>{((c.crew?.executors[key]?.ms ?? 0) / 1000).toFixed(1)} s</td>
-                    <td className="muted">{usesModel ? (u ? `${u.calls} calls, ${u.cached} cached` : '-') : 'rules'}</td>
+                    <td className="name">{label}</td>
+                    <td className="num">{c.crew?.executors[key]?.calls ?? 0}</td>
+                    <td className="num">{((c.crew?.executors[key]?.ms ?? 0) / 1000).toFixed(1)} s</td>
+                    <td>{usesModel ? (u ? `${u.calls} calls, ${u.cached} cached` : '-') : 'rules'}</td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
           <h4>Crew log</h4>
-          {c.notes.length === 0 && <p className="muted">No rejections yet. Inject storyteller errors or cut the model to see recovery.</p>}
+          {c.notes.length === 0 && <p className="empty">No rejections yet. Inject storyteller errors or cut the model to see recovery.</p>}
           <ul className="notes">
             {c.notes.map((n) => (
               <NoteItem key={n.id} n={n} />
