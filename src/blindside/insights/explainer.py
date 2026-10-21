@@ -17,12 +17,12 @@ from .storyteller import Names
 from .text import minute
 from .tools import MatchTools, ToolLog
 
-PROMPT_VERSION = "crew-v2"
+PROMPT_VERSION = "crew-v3"
 ROLE = {
     "tactical_analyst": "tactical analyst. You explain team patterns: pressing, momentum, gaps between the lines, "
-                        "overloads, counter-pressing and who controls the game.",
+                        "overloads, counter-pressing, who controls the game, and the story before kick-off.",
     "player_lens": "player analyst. You explain one player's story: decoy runs that drag defenders away, the moves "
-                   "that led to a shot, and fatigue.",
+                   "that led to a shot, goals, season-best sprints, records and fatigue.",
 }
 INSTRUCTIONS = """You are the {role}
 You work on a live association football (soccer) broadcast. A rule-based detector flagged the moment below. Explain it
@@ -33,6 +33,8 @@ Rules:
   round them.
 - Name players by surname, and only players that appear in the facts or tool results. Name clubs by their name.
 - The baseline explanation is correct but plain. Improve it with the cause, not with new claims.
+- Use season_record when it sharpens the point, for example a press well above the club's season average or a
+  player's best game of the season. Say so only when the numbers show it.
 - claim: one sentence, at most 110 characters. mechanism: at most two sentences and 280 characters, with the key
   numbers. consequence: one sentence, at most 170 characters.
 - Plain English, present tense, no hype, no speculation about injuries or private matters.

@@ -19,17 +19,25 @@ from .verifier import MAX_BODY, MAX_HEADLINE
 
 LANG_NAME = {"en": "English", "es": "Spanish", "et": "Estonian"}
 PERSONA_STYLE = {
-    "analyst": "for analysts: precise, tactical vocabulary, keeps the key numbers and the cause",
-    "fan": "for casual fans: vivid, plain words, at most one number per sentence, no jargon",
-    "player_focus": "for a viewer following one player: about that player, warm but factual",
+    "analyst": "for analysts and coaches: precise and comparative. Lead with the mechanism, keep the key numbers with "
+               "units, and compare with the season average or the previous value whenever the facts include one",
+    "fan": "for fans following live on their phone: make them feel it. Lead with what is at stake for the club or the "
+           "player, then the reason in plain words. If the facts include a season best, a record, a season total or a "
+           "league rank, put it up front. At most one number per sentence, no jargon",
+    "player_focus": "for a fan who follows this one player: what the player just did, why it mattered, and how it "
+                    "compares with the player's own season when the facts allow. Warm and specific",
 }
-INSTRUCTIONS = f"""You write on-screen graphics for a live association football (soccer) broadcast.
-For each requested language and persona, rewrite the reference line into a better broadcast line.
+INSTRUCTIONS = f"""You write on-screen graphics and app notifications for live association football (soccer).
+For each requested language and persona, rewrite the reference line into a line people want to read.
 Rules:
 - Use only facts in the reference lines and the facts list. The analyst's explanation tells you why it happened; use it
   for the cause, never for extra numbers.
-- Copy every number and name exactly as written in that language's facts, including decimal commas.
+- Copy every number and name exactly as written in that language's facts. Spanish and Estonian use a decimal comma.
 - Never add numbers, players, clubs or events.
+- Only call something a record, a best, the most, the fastest or a first when the facts say so.
+- Only describe the score (a lead, an equaliser, a comeback) when the facts give it: gf is the scoring club's goals
+  and ga the other club's, after this goal.
+- Headlines are hooks: specific, active, no questions, no clickbait.
 - Headline at most {MAX_HEADLINE - 10} characters. Body at most {MAX_BODY - 30} characters, one or two short sentences.
   Count the characters: longer lines are rejected.
 - Write natively in each language, as a broadcaster from that country would. No translationese.

@@ -30,8 +30,20 @@ from agent_framework import (
 
 from ..contracts import OverlayPacket, Pattern
 from ..stats.analyse import Analysis
+from ..stats.season import Season
 from ..stats.state import StateBin
-from .analyst import PLAYER, TACTICAL, Builder, Draft, RepeatGuard, draft_player, draft_state, draft_tactical
+from .analyst import (
+    PLAYER,
+    TACTICAL,
+    Builder,
+    Draft,
+    RepeatGuard,
+    draft_player,
+    draft_preview,
+    draft_standouts,
+    draft_state,
+    draft_tactical,
+)
 from .cache import Cache
 from .explainer import PROMPT_VERSION, Explainer
 from .foundry import Foundry, ModelOff, Switch
@@ -66,6 +78,7 @@ class AnalystTask:
 @dataclass
 class LensTask:
     patterns: list[Pattern]
+    closing: tuple[int, float] | None = None
 
 
 @dataclass
@@ -173,7 +186,8 @@ class MomentRouter(Executor):
         player = [p for p in batch.patterns if p.type in PLAYER]
         tags = [p for p in batch.patterns if p.type in TAG_SLOT]
         await ctx.send_message(AnalystTask(tactical, batch.state))
-        await ctx.send_message(LensTask(player))
+        closing = (batch.period, batch.t) if batch.close_period and batch.period == 1 else None
+        await ctx.send_message(LensTask(player, closing))
         await ctx.send_message(TagTask(tags))
         if batch.close_period:
             await ctx.send_message(RecapTask(batch.period, batch.t))
@@ -181,17 +195,21 @@ class MomentRouter(Executor):
 
 class TacticalAnalyst(Executor):
     def __init__(self, a: Analysis, by_id: dict[str, Pattern], names: Names, guard: RepeatGuard,
-                 explainer: Explainer | None) -> None:
+                 explainer: Explainer | None, season: Season) -> None:
         super().__init__("tactical_analyst")
-        self.builder = Builder(a, "tactical-analyst")
+        self.builder = Builder(a, "tactical-analyst", season)
         self.by_id = by_id
         self.names = names
         self.guard = guard
         self.explainer = explainer
         self.last_label: str | None = None
+        self.previewed = False
 
     @handler
     async def analyse(self, task: AnalystTask, ctx: WorkflowContext[Drafts, CrewNote]) -> None:
+        if not self.previewed:
+            self.previewed = True
+            draft_preview(self.builder)
         for p in task.patterns:
             draft_tactical(self.builder, p, self.by_id)
         self.last_label = draft_state(self.builder, task.state, self.last_label)
@@ -201,17 +219,18 @@ class TacticalAnalyst(Executor):
         await ctx.send_message(Drafts("tactical_analyst", drafts))
 
     async def on_checkpoint_save(self) -> dict:
-        return {"last_label": self.last_label}
+        return {"last_label": self.last_label, "previewed": self.previewed}
 
     async def on_checkpoint_restore(self, state: dict) -> None:
         self.last_label = state.get("last_label")
+        self.previewed = state.get("previewed", False)
 
 
 class PlayerLens(Executor):
     def __init__(self, a: Analysis, by_id: dict[str, Pattern], names: Names, guard: RepeatGuard,
-                 explainer: Explainer | None) -> None:
+                 explainer: Explainer | None, season: Season) -> None:
         super().__init__("player_lens")
-        self.builder = Builder(a, "player-lens")
+        self.builder = Builder(a, "player-lens", season)
         self.by_id = by_id
         self.names = names
         self.guard = guard
@@ -221,6 +240,8 @@ class PlayerLens(Executor):
     async def follow(self, task: LensTask, ctx: WorkflowContext[Drafts, CrewNote]) -> None:
         for p in task.patterns:
             draft_player(self.builder, p, self.by_id)
+        if task.closing:
+            draft_standouts(self.builder, *task.closing)
         drafts = self.builder.take()
         for note in await explain_all(self.explainer, drafts, self.names, self.guard):
             await ctx.yield_output(note)
@@ -431,16 +452,17 @@ class Crew:
 
 def build_crew(a: Analysis, langs: tuple[str, ...] = LANGS, unreliable: float = 0.0,
                checkpoints: Path | None = None, foundry: Foundry | None = None, cache: Cache | None = None,
-               live: bool = False) -> Crew:
+               live: bool = False, season: Season | None = None) -> Crew:
     """A crew over one match. With `foundry` the analysts, storyteller and recapper use the model."""
     by_id = {p.id: p for p in a.patterns}
     names = Names(a.md.meta)
+    season = season or Season([])
     switch = Switch()
     cache = cache or Cache()
     explain_tactical = explain_player = writer = recap_writer = None
     if foundry is not None:
         deadline = DEADLINES_S["live" if live else "batch"]
-        tools = MatchTools(a, names)
+        tools = MatchTools(a, names, season)
         explain_tactical = Explainer(foundry, tools, names, "tactical_analyst", switch, cache, deadline["explain"])
         explain_player = Explainer(foundry, tools, names, "player_lens", switch, cache, deadline["explain"])
         writer = ModelWriter(foundry, names, switch, cache, deadline["write"])
@@ -448,8 +470,8 @@ def build_crew(a: Analysis, langs: tuple[str, ...] = LANGS, unreliable: float = 
     guard = RepeatGuard()
     scheduler = Scheduler(a, names, langs)
     router = MomentRouter("moment_router")
-    analyst = TacticalAnalyst(a, by_id, names, guard, explain_tactical)
-    lens = PlayerLens(a, by_id, names, guard, explain_player)
+    analyst = TacticalAnalyst(a, by_id, names, guard, explain_tactical, season)
+    lens = PlayerLens(a, by_id, names, guard, explain_player, season)
     editor = Editor(guard)
     storyteller = Storyteller(names, langs, writer, unreliable)
     verifier = Verifier(names)

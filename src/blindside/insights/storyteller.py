@@ -6,14 +6,15 @@ from dataclasses import dataclass
 
 from ..contracts import MatchMetadata
 from .analyst import Draft
-from .templates import DRIVER, OUTCOME, PASSES, SERVED, TAGS, T
+from .templates import DRIVER, LEAD, METRIC, OUTCOME, PASSES, SERVED, TAGS, T
 from .text import POSITION, SIDE, num, surname
 
 PERSONAS = ("analyst", "fan", "player_focus")
-PLAYER_KEYS = {"runner", "defender", "benef", "shooter", "decoy", "player", "focus"}
+PLAYER_KEYS = {"runner", "defender", "benef", "shooter", "decoy", "player", "focus", "star"}
 DECIMALS = {"pa": 1, "pb": 1, "la": 0, "lb": 0, "d": 0, "xg": 2, "sec": 0, "passes": 0, "tpm": 1, "under": 0,
             "ca": 0, "cb": 0, "poss": 0, "terr": 0, "n": 0, "s": 1, "gap": 0, "a": 0, "pct": 0, "now": 1,
-            "early": 1, "fn": 0, "v": 1, "km": 0, "m": 0, "diff": 1}
+            "early": 1, "fn": 0, "v": 1, "km": 0, "m": 0, "diff": 1, "pv": 1, "lg": 1, "sa": 1, "sd": 0, "sg": 0,
+            "hw": 0, "aw": 0, "lh": 0, "pd": 0, "cnt": 0, "avg": 1, "gf": 0, "ga": 0}
 AND = {"en": "and", "es": "y", "et": "ja"}
 
 
@@ -56,6 +57,10 @@ def localize(facts: dict, lang: str, names: Names) -> dict[str, str]:
             out[key] = (one if int(value) == 1 else many).format(n=int(value))
         elif key == "served":
             out[key] = SERVED[lang] if value else ""
+        elif key == "lead":
+            out[key] = LEAD[lang] if value else ""
+        elif key == "metric":
+            out[key] = METRIC[lang].get(value, value)
         elif isinstance(value, int | float):
             out[key] = num(float(value), lang, DECIMALS.get(key, 0))
         else:

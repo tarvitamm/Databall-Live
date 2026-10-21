@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import pytest
 
@@ -8,6 +9,7 @@ from blindside.insights.storyteller import Names
 from blindside.insights.verifier import verify
 from blindside.sim.cli import simulate
 from blindside.stats.analyse import analyse
+from blindside.stats.season import Season, summarize
 
 
 @pytest.fixture(scope="module")
@@ -48,3 +50,23 @@ def test_checkpoints_are_written(folder, tmp_path):
     crew = build_crew(a, checkpoints=tmp_path)
     asyncio.run(run_match(crew, a))
     assert any(tmp_path.iterdir())
+
+
+def test_season_context_adds_previews_records_and_totals(folder):
+    a = analyse(folder)
+    base = summarize(a)
+    history = []
+    for k in range(4):
+        game = json.loads(json.dumps(base))
+        game["match"] = f"m_000{k}"
+        for player in game["players"].values():
+            player["top_speed_kmh"] = 20.0
+            player["decoy_runs"] = 2
+        history.append(game)
+    crew = build_crew(a, season=Season(history))
+    asyncio.run(run_match(crew, a))
+    keys = {d.key for d in crew.editor.history}
+    assert "preview_h2h" in keys
+    assert any(k.startswith("record_speed") for k in keys)
+    assert all(not verify(d, v, crew.names) for d in crew.editor.history for v in crew.producer.approved
+               if v.insight == d.insight.id and v.source != "fallback")

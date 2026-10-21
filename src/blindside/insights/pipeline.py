@@ -17,6 +17,7 @@ from pathlib import Path
 
 from ..contracts import OverlayPacket
 from ..stats.analyse import Analysis, analyse, write
+from ..stats.season import Season
 from .analyst import Draft
 from .cache import Cache
 from .crew import CrewNote, build_crew, run_match
@@ -50,7 +51,8 @@ async def run_async(folder: Path, langs: tuple[str, ...] = LANGS, unreliable: fl
         if found is None:
             raise SystemExit("Set FOUNDRY_PROJECT_ENDPOINT in .env to use the model")
         foundry = Foundry(found)
-    crew = build_crew(a, langs, unreliable=unreliable, checkpoints=checkpoints, foundry=foundry, cache=cache)
+    crew = build_crew(a, langs, unreliable=unreliable, checkpoints=checkpoints, foundry=foundry, cache=cache,
+                      season=Season.load(folder))
     result = await run_match(crew, a)
     cache.save()
     for d in crew.editor.history:

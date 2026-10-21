@@ -12,6 +12,7 @@ from typing import Annotated
 
 from ..stats.analyse import Analysis
 from ..stats.kinematics import count_sprints
+from ..stats.season import PLAYER_METRICS, TEAM_METRICS, Season
 from .storyteller import Names
 from .text import minute
 
@@ -62,9 +63,10 @@ class ToolLog:
 
 
 class MatchTools:
-    def __init__(self, a: Analysis, names: Names) -> None:
+    def __init__(self, a: Analysis, names: Names, season: Season | None = None) -> None:
         self.a = a
         self.names = names
+        self.season = season or Season([])
         self.events = {e["id"]: e for e in a.md.events}
 
     def _name(self, pid: str | None) -> str | None:
@@ -165,6 +167,28 @@ class MatchTools:
                 "outcome": p.measures.get("outcome"), "xg": p.measures.get("xg"), "passes": p.measures.get("passes"),
                 "seconds": p.measures.get("seconds"), "links": links}
 
+    def season_record(self, team: str = "", player: str = "") -> dict:
+        """Earlier matches this season: averages, bests and league ranks."""
+        s = self.season
+        if player:
+            games = s.player_games(player)
+            if not games:
+                return {"player": self._name(player), "note": "no earlier matches this season"}
+            return {"player": self._name(player), "games": len(games),
+                    "average": {m: s.player_avg(player, m) for m in PLAYER_METRICS},
+                    "best_in_a_game": {m: s.player_best(player, m) for m in PLAYER_METRICS},
+                    "season_total": {m: round(s.player_total(player, m), 2) for m in ("decoy_runs", "goals", "shots")},
+                    "league_rank_by_total": {m: (s.total_rank(player, m) or (None, None))[0]
+                                             for m in ("decoy_runs", "goals")}}
+        if team:
+            if not s.games(team):
+                return {"team": self._team(team), "note": "no earlier matches this season"}
+            return {"team": self._team(team), "games": len(s.games(team)), "form_last_5": s.form(team),
+                    "average": {m: s.team_avg(team, m) for m in TEAM_METRICS},
+                    "league_rank_of_average": {m: (s.team_rank(team, m) or (None, None))[0]
+                                               for m in ("pressures_per_min", "xg", "decoy_runs")}}
+        return {"error": "give a club code or a player id"}
+
     def bind(self, now: tuple[int, float], log: ToolLog) -> list:
         """Agent Framework tools that see the match only up to `now` and log every answer."""
         from agent_framework import tool
@@ -192,4 +216,10 @@ class MatchTools:
             """The moves that led to a shot, link by link."""
             return log.record("shot_chain", {"pattern_id": pattern_id}, self.chain(pattern_id, now))
 
-        return [tool(f) for f in (match_state, pressing, recent_patterns, player_summary, shot_chain)]
+        def season_record(team: Annotated[str, "Club code, or empty"] = "",
+                          player: Annotated[str, "Player id, or empty"] = "") -> dict:
+            """This season before today: averages, best games, totals and league ranks for a club or a player."""
+            args = {"team": team, "player": player}
+            return log.record("season_record", args, self.season_record(team, player))
+
+        return [tool(f) for f in (match_state, pressing, recent_patterns, player_summary, shot_chain, season_record)]

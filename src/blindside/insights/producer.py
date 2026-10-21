@@ -13,9 +13,11 @@ LATENCY_S = 2.0
 LOWER_THIRD_S = 12.0
 TAG_S = 5.0
 MAX_DELAY_S = 20.0
-PRIORITY = {"chain": 1, "pressure_shift": 2, "decoy_run": 2, "momentum_swing": 3, "between_lines_gap": 3,
-            "counter_press": 3, "overload": 4, "fatigue": 4, "match_state": 4}
-VIZ = {"chain": "chain", "pressure_shift": "press_map", "decoy_run": "run_trail", "momentum_swing": "momentum",
+PRIORITY = {"chain": 1, "preview": 2, "record": 2, "standout": 3, "pressure_shift": 2, "decoy_run": 2,
+            "momentum_swing": 3, "between_lines_gap": 3, "counter_press": 3, "overload": 4, "fatigue": 4,
+            "match_state": 4}
+VIZ = {"chain": "chain", "record": "run_trail", "pressure_shift": "press_map", "decoy_run": "run_trail",
+       "momentum_swing": "momentum",
        "between_lines_gap": "lines", "counter_press": "press_map", "overload": "overload", "fatigue": "player",
        "match_state": "control_bar"}
 TAG_SLOT = {"speed_tag": "player_tag", "match_top_speed": "player_tag", "distance_milestone": "player_tag",
@@ -73,7 +75,7 @@ class Scheduler:
                 slot="lower_third", priority=PRIORITY.get(ins.type, 4), show_at=round(show, 1),
                 expires_at=round(show + LOWER_THIRD_S, 1), period=ins.period,
                 text={"headline": v.headline, "body": v.body},
-                data={"type": ins.type, "teams": ins.entities.get("teams", []),
+                data={"type": ins.type, "key": by_id[v.insight].key, "teams": ins.entities.get("teams", []),
                       "players": ins.entities.get("players", []), "significance": ins.significance,
                       "confidence": ins.confidence, "signals": ins.signals, "source": v.source,
                       "why": {"claim": ins.claim, "mechanism": ins.mechanism, "consequence": ins.consequence,

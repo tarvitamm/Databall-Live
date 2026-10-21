@@ -7,14 +7,21 @@ from dataclasses import dataclass, field
 
 from ..contracts import Evidence, Insight, ModelInfo, Pattern
 from ..stats.analyse import Analysis
+from ..stats.kinematics import count_sprints
+from ..stats.season import Season
 from ..stats.state import StateBin
 
 PROMPT_VERSION = "templates-v1"
 TACTICAL = {"pressure_shift", "momentum_swing", "counter_press", "between_lines_gap", "overload"}
-PLAYER = {"decoy_run", "chain", "fatigue"}
+PLAYER = {"decoy_run", "chain", "fatigue", "speed_tag", "match_top_speed"}
 MIN_GAP_S = 45.0
 REPEAT_GAP_S = {"decoy_run": 600.0, "overload": 600.0, "between_lines_gap": 300.0, "counter_press": 300.0,
-                "match_state": 600.0}
+                "match_state": 600.0, "record": 240.0, "standout": 30.0}
+MIN_GAMES = 3
+RECENT_GAMES = 5
+STANDOUT_RATIO = 1.35
+STANDOUT_MIN_AVG = {"decoy_runs": 3.0, "sprints": 12.0, "pressures": 15.0, "distance_km": 8.0}
+PREVIEW_AT_S = 20.0
 
 
 @dataclass
@@ -28,10 +35,13 @@ class Draft:
 
 
 class Builder:
-    def __init__(self, a: Analysis, agent: str) -> None:
+    def __init__(self, a: Analysis, agent: str, season: Season | None = None) -> None:
         self.a = a
         self.agent = agent
+        self.season = season or Season([])
         self.drafts: list[Draft] = []
+        self.speed_records: dict[str, float] = {}
+        self.decoy_records: dict[str, int] = {}
 
     def add(self, kind: str, key: str, t: float, period: int, facts: dict, signals: dict, entities: dict,
             confidence: float, significance: float, evidence: Evidence) -> None:
@@ -74,6 +84,10 @@ def draft_tactical(b: Builder, p: Pattern, by_id: dict[str, Pattern]) -> None:
                    for k in ("pressures_per_min", "line_height_m", "ppda", "high_regains_per_10")}
         agreeing = len(str(m["signals"]).split(","))
         key = "pressure_harder" if m["direction"] == "harder" else "pressure_softer"
+        usual = b.season.team_avg(team, "pressures_per_min")
+        if key == "pressure_harder" and usual and len(b.season.games(team)) >= MIN_GAMES and facts["pa"] > usual * 1.1:
+            facts["sa"] = usual
+            key = "pressure_harder_season"
         b.add("pressure_shift", key, p.t_end, p.period, facts, signals,
               {"teams": [team, facts["opp"]], "players": facts["leaders"]}, 0.55 + 0.1 * agreeing, p.significance,
               _evidence(p))
@@ -113,9 +127,17 @@ def draft_player(b: Builder, p: Pattern, by_id: dict[str, Pattern]) -> None:
                  "benef": m["beneficiary"], "served": served}
         signals = {"defender_displacement_m": m["defender_displacement_m"], "space_value_gain": gain}
         confidence = 0.6 + (0.2 if served else 0.0) + (0.1 if gain >= 0.15 else 0.0)
-        b.add("decoy_run", "decoy_run", p.t_end + 1.0, p.period, facts, signals,
+        today = _decoys_so_far(b.a, p)
+        key = "decoy_run"
+        if len(b.season.player_games(p.actor)) >= MIN_GAMES:
+            facts["sd"] = int(b.season.player_total(p.actor, "decoy_runs")) + today
+            rank = b.season.total_rank(p.actor, "decoy_runs", extra=today)
+            facts["lead"] = bool(rank and rank[0] == 1)
+            key = "decoy_run_season"
+        b.add("decoy_run", key, p.t_end + 1.0, p.period, facts, signals,
               {"teams": [team], "players": [p.actor, defender, facts["benef"]]}, confidence, p.significance,
               _evidence(p))
+        draft_decoy_record(b, p, today)
     elif p.type == "chain":
         xg = float(m["xg"])
         goal = m["outcome"] == "goal"
@@ -132,13 +154,148 @@ def draft_player(b: Builder, p: Pattern, by_id: dict[str, Pattern]) -> None:
             players += [decoys[0].actor, decoys[0].affected[0]]
             key = "chain_decoy"
         signals = {"xg": xg, "passes": float(m["passes"]), "seconds": float(m["seconds"])}
+        if goal:
+            scored = [e["team"] for e in b.a.md.events if e["type"] == "goal"
+                      and (e["period"], e["t"]) <= (p.period, p.t_end + 1.0)]
+            facts.update(gf=scored.count(team), ga=scored.count(b.opp(team)))
+        if goal and b.season.player_games(p.actor):
+            facts["sg"] = int(b.season.player_total(p.actor, "goals")) + _goals_so_far(b.a, p)
+            facts["focus"] = p.actor
+            key = "goal_decoy" if decoys else "goal" if int(m["passes"]) > 0 else "goal_solo"
         b.add("chain", key, p.t_end + 1.0, p.period, facts, signals, {"teams": [team], "players": players}, 0.9,
               max(p.significance, 0.9 if goal else 0.0), _evidence(p, p.evidence.events))
+    elif p.type in ("speed_tag", "match_top_speed"):
+        draft_speed_record(b, p)
     elif p.type == "fatigue":
         facts = {"team": team, "player": p.actor, "pct": m["high_intensity_share_change_pct"],
                  "now": m["top_speed_kmh_now"], "early": m["top_speed_kmh_early"], "focus": p.actor}
         b.add("fatigue", "fatigue", p.t_end, p.period, facts, {"top_speed_kmh": [facts["early"], facts["now"]]},
               {"teams": [team], "players": [p.actor]}, 0.7, p.significance, _evidence(p))
+
+
+def _decoys_so_far(a: Analysis, p: Pattern) -> int:
+    return sum(1 for q in a.patterns if q.type == "decoy_run" and q.actor == p.actor
+               and (q.period, q.t_end) <= (p.period, p.t_end))
+
+
+def _goals_so_far(a: Analysis, p: Pattern) -> int:
+    return sum(1 for e in a.md.events if e["type"] == "goal" and e.get("player") == p.actor
+               and (e["period"], e["t"]) <= (p.period, p.t_end + 1.0))
+
+
+def draft_speed_record(b: Builder, p: Pattern) -> None:
+    """A sprint faster than the player has managed all season, or faster than anyone in the league."""
+    pid = p.actor or ""
+    v = float(p.measures["speed_kmh"])
+    best = b.season.player_best(pid, "top_speed_kmh")
+    recent = b.season.recent_best(pid, "top_speed_kmh", RECENT_GAMES)
+    if best is None or recent is None or len(b.season.player_games(pid)) < MIN_GAMES:
+        return
+    if v <= recent or v <= b.speed_records.get(pid, 0.0):
+        return
+    b.speed_records[pid] = v
+    league = b.season.league_best("top_speed_kmh")
+    facts = {"team": p.team, "player": pid, "focus": pid, "v": v, "pv": best}
+    key = "record_speed"
+    if league and v > league[0]:
+        facts["lg"] = league[0]
+        key = "record_speed_league"
+    elif v <= best:
+        facts.update(pv=recent, n=RECENT_GAMES)
+        key = "record_speed_recent"
+    b.add("record", key, p.t_end + 1.0, p.period, facts, {"speed_kmh": [facts["pv"], v]},
+          {"teams": [p.team or ""], "players": [pid]}, 0.95, 0.75 if key == "record_speed_league" else 0.6,
+          _evidence(p))
+
+
+def draft_decoy_record(b: Builder, p: Pattern, today: int) -> None:
+    """More decoy runs in this match than the player has made in any game this season."""
+    pid = p.actor or ""
+    best = b.season.player_best(pid, "decoy_runs")
+    if best is None or len(b.season.player_games(pid)) < MIN_GAMES or best < 2 or today <= best:
+        return
+    if today <= b.decoy_records.get(pid, 0):
+        return
+    b.decoy_records[pid] = today
+    b.add("record", "record_decoys", p.t_end + 2.0, p.period,
+          {"team": p.team, "runner": pid, "focus": pid, "n": today, "pd": int(best)},
+          {"decoy_runs": [float(best), float(today)]}, {"teams": [p.team or ""], "players": [pid]}, 0.9, 0.65,
+          _evidence(p))
+
+
+def _so_far(a: Analysis, pid: str, period: int, t: float) -> dict[str, float]:
+    md = a.md
+    i = md.player_index(pid)
+    upto = md.frame_at(period, t) + 1
+    speed = a.kin.speed[:upto, i]
+    done = lambda p, et: p < period or (p == period and et <= t)  # noqa: E731
+    return {"decoy_runs": sum(1 for q in a.patterns if q.type == "decoy_run" and q.actor == pid
+                              and done(q.period, q.t_end)),
+            "sprints": count_sprints(speed, md.hz),
+            "pressures": sum(1 for e in md.events if e["type"] == "pressure" and e.get("player") == pid
+                             and done(e["period"], e["t"])),
+            "distance_km": round(float(speed.sum() / md.hz / 1000.0), 1)}
+
+
+def draft_standouts(b: Builder, period: int, t: float, k: int = 2) -> None:
+    """At half-time: the players running well above their usual season pace."""
+    md = b.a.md
+    start1, end1 = float(md.t[md.period == 1][0]), float(md.t[md.period == 1][-1])
+    played = (t - start1) if period == 1 else (end1 - start1) + (t - float(md.t[md.period == 2][0]))
+    pace = max(played / 5400.0, 0.2)
+    found = []
+    for pid in md.ids:
+        if len(b.season.player_games(pid)) < MIN_GAMES:
+            continue
+        now = _so_far(b.a, pid, period, t)
+        for metric, least in STANDOUT_MIN_AVG.items():
+            avg = b.season.player_avg(pid, metric)
+            if not avg or avg < least:
+                continue
+            ratio = now[metric] / (avg * pace)
+            if ratio >= (STANDOUT_RATIO if metric != "distance_km" else 1.08):
+                found.append((ratio, pid, metric, now[metric], avg))
+    seen: set[str] = set()
+    for ratio, pid, metric, value, avg in sorted(found, reverse=True):
+        if pid in seen or len(seen) >= k:
+            continue
+        seen.add(pid)
+        team = pid.split("_")[0]
+        facts = {"team": team, "player": pid, "focus": pid, "metric": metric, "avg": round(avg, 1)}
+        if metric == "distance_km":
+            facts["now"] = value
+            key = "standout_distance"
+        else:
+            facts["cnt"] = int(value)
+            key = "standout"
+        b.add("standout", key, t + 3.0, period, facts, {metric: [round(avg * pace, 1), float(value)]},
+              {"teams": [team], "players": [pid]}, 0.85, min(0.5 + 0.1 * ratio, 0.8), Evidence(window=(t - 600.0, t)))
+
+
+def draft_preview(b: Builder) -> None:
+    """The story before kick-off: last meeting, form and the off-ball specialist to watch."""
+    s = b.season
+    home, away = b.a.md.codes
+    if len(s.games(home)) < MIN_GAMES or len(s.games(away)) < MIN_GAMES:
+        return
+    form_home, form_away = s.form(home), s.form(away)
+    facts: dict = {"team": home, "opp": away, "hw": form_home.count("W"), "aw": form_away.count("W"),
+                   "n": min(len(form_home), len(form_away))}
+    squads = set(b.a.md.ids)
+    leaders = [(pid, v) for pid, v in s.leaders("decoy_runs") if pid in squads]
+    players = []
+    if leaders:
+        star, total = leaders[0]
+        rank = s.total_rank(star, "decoy_runs")
+        facts.update(star=star, focus=star, sd=int(total), lead=bool(rank and rank[0] == 1))
+        players = [star]
+    met = s.last_meeting(home, away)
+    key = "preview"
+    if met:
+        facts.update(lh=met["score"][home], la=met["score"][away])
+        key = "preview_h2h"
+    b.add("preview", key, PREVIEW_AT_S, 1, facts, {"form_wins": [float(facts["hw"]), float(facts["aw"])]},
+          {"teams": [home, away], "players": players}, 0.95, 0.7, Evidence(window=(0.0, PREVIEW_AT_S)))
 
 
 def draft_state(b: Builder, bins: list[StateBin], previous: str | None) -> str | None:
@@ -178,7 +335,7 @@ class RepeatGuard:
         team = (d.insight.entities.get("teams") or [""])[0]
         goal = d.facts.get("outcome") == "goal"
         gap = REPEAT_GAP_S.get(d.insight.type)
-        kind_key = f"{d.insight.type}:{d.facts.get('runner') or team}"
+        kind_key = f"{d.insight.type}:{d.facts.get('runner') or d.facts.get('player') or team}"
         if gap is not None and now - self.last_kind.get(kind_key, -1e9) < gap and not goal:
             return False
         last_t, last_sig = self.last_team.get(team, (-1e9, 0.0))
