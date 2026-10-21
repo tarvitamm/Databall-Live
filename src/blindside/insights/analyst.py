@@ -157,7 +157,9 @@ def draft_player(b: Builder, p: Pattern, by_id: dict[str, Pattern]) -> None:
         if goal:
             scored = [e["team"] for e in b.a.md.events if e["type"] == "goal"
                       and (e["period"], e["t"]) <= (p.period, p.t_end + 1.0)]
-            facts.update(gf=scored.count(team), ga=scored.count(b.opp(team)))
+            gf, ga = scored.count(team), scored.count(b.opp(team))
+            state = "ahead" if gf - 1 == ga else "extends" if gf - 1 > ga else "level" if gf == ga else "back"
+            facts.update(gf=gf, ga=ga, state=state)
         if goal and b.season.player_games(p.actor):
             facts["sg"] = int(b.season.player_total(p.actor, "goals")) + _goals_so_far(b.a, p)
             facts["focus"] = p.actor

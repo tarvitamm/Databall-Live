@@ -35,8 +35,9 @@ Rules:
 - Copy every number and name exactly as written in that language's facts. Spanish and Estonian use a decimal comma.
 - Never add numbers, players, clubs or events.
 - Only call something a record, a best, the most, the fastest or a first when the facts say so.
-- Only describe the score (a lead, an equaliser, a comeback) when the facts give it: gf is the scoring club's goals
-  and ga the other club's, after this goal.
+- Describe the score only with the score sentence in the facts (state). Never call a goal a lead, an equaliser or a
+  winner in any other way.
+- The facts are authoritative. Season totals in the facts already include today's match.
 - Headlines are hooks: specific, active, no questions, no clickbait.
 - Headline at most {MAX_HEADLINE - 10} characters. Body at most {MAX_BODY - 30} characters, one or two short sentences.
   Count the characters: longer lines are rejected.

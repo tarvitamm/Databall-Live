@@ -54,3 +54,26 @@ def test_verifier_catches_wrong_numbers_and_names(output):
                     and names.player[pid] not in f"{good.headline} {good.body}")
     wrong_name = replace(good, body=f"{good.body} {names.player[outsider]} watched.")
     assert verify(draft, wrong_name, names)
+
+
+def test_goal_lines_must_match_the_score():
+    from blindside.contracts import Evidence, Insight
+    from blindside.insights.analyst import Draft
+    from blindside.insights.storyteller import Variant
+    from blindside.insights.verifier import verify
+
+    class Names:
+        player = {"HAR_9": "Diallo"}
+        team = {"HAR": "Harbour"}
+
+    insight = Insight(id="in_1", match="m", t=100.0, period=1, type="chain", claim="", signals={}, mechanism="",
+                      consequence="", evidence=Evidence(), confidence=0.9, significance=0.9,
+                      entities={"players": ["HAR_9"]})
+    d = Draft(insight, "goal", {"team": "HAR", "shooter": "HAR_9", "gf": 2, "ga": 0, "state": "extends"})
+    ok = Variant("in_1", "fan", "en", "Diallo doubles the lead", "Harbour now lead 2-0.")
+    wrong = Variant("in_1", "fan", "en", "Diallo levels it", "Harbour 2-0.")
+    assert verify(d, ok, Names()) == []
+    assert any("level" in r for r in verify(d, wrong, Names()))
+    d.facts["state"] = "back"
+    behind = Variant("in_1", "fan", "es", "Diallo adelanta a Harbour", "2-0.")
+    assert any("ahead" in r for r in verify(d, behind, Names()))

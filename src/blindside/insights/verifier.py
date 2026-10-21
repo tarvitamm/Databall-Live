@@ -9,6 +9,12 @@ from .storyteller import Names, Variant, localize
 from .templates import T
 
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+AHEAD_WORDS = {"en": r"\b(ahead|in front|lead|leads|leading)\b",
+               "es": r"\b(adelant\w*|por delante|ventaja|ganando)\b",
+               "et": r"\b(juhtima|juhib|juhtimas|eduseis\w*|edu)\b"}
+LEVEL_WORDS = {"en": r"\b(level|levels|equalis\w*|equaliz\w*|draw|tied?)\b",
+               "es": r"\b(empat\w*|iguala\w*)\b",
+               "et": r"\b(viik\w*|viigi\w*|egaliseeri\w*)\b"}
 MAX_HEADLINE = 48
 MAX_BODY = 150
 MAX_ANALYST_BODY = 180
@@ -29,10 +35,11 @@ def verify(d: Draft, v: Variant, names: Names) -> list[str]:
     allowed = set(_template_numbers(d, v))
     for value in localize(d.facts, v.lang, names).values():
         allowed.update(NUMBER.findall(value))
-    seen = _fact_numbers(d) | d.seen
+    seen = _fact_numbers(d) | (d.seen if v.persona == "analyst" else set())
     for found in NUMBER.findall(text):
         if found not in allowed and not _supported(found, seen):
             reasons.append(f"number {found} is not in the facts")
+    reasons += _score_words(d, v, text)
     mentioned = {pid for pid, name in names.player.items() if re.search(rf"\b{re.escape(name)}\b", text)}
     allowed_players = set(d.insight.entities.get("players", []))
     allowed_players |= {v for k, v in d.facts.items() if isinstance(v, str) and v in names.player}
@@ -52,6 +59,20 @@ MAX_CLAIM = 140
 MAX_MECHANISM = 320
 MAX_CONSEQUENCE = 200
 WINDOWS = {5.0, 10.0}
+
+
+def _score_words(d: Draft, v: Variant, text: str) -> list[str]:
+    """A goal line may only describe the score the way the facts say it stands."""
+    state = d.facts.get("state")
+    if state is None or v.lang not in AHEAD_WORDS:
+        return []
+    lower = text.lower()
+    reasons = []
+    if state not in ("ahead", "extends") and re.search(AHEAD_WORDS[v.lang], lower):
+        reasons.append(f"says the scorers are ahead, but the goal {state}")
+    if state != "level" and re.search(LEVEL_WORDS[v.lang], lower):
+        reasons.append(f"says the score is level, but the goal {state}")
+    return reasons
 
 
 def _value(raw: str) -> float:

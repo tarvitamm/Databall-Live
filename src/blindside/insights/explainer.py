@@ -35,6 +35,8 @@ Rules:
 - The baseline explanation is correct but plain. Improve it with the cause, not with new claims.
 - Use season_record when it sharpens the point, for example a press well above the club's season average or a
   player's best game of the season. Say so only when the numbers show it.
+- The facts are authoritative. season_record covers earlier matches only, while season totals in the facts already
+  include today. When they differ, use the facts. Describe the score only as the facts state it.
 - claim: one sentence, at most 110 characters. mechanism: at most two sentences and 280 characters, with the key
   numbers. consequence: one sentence, at most 170 characters.
 - Plain English, present tense, no hype, no speculation about injuries or private matters.

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from ..contracts import MatchMetadata
 from .analyst import Draft
-from .templates import DRIVER, LEAD, METRIC, OUTCOME, PASSES, SERVED, TAGS, T
+from .templates import DRIVER, LEAD, METRIC, OUTCOME, PASSES, SERVED, STATE, TAGS, T
 from .text import POSITION, SIDE, num, surname
 
 PERSONAS = ("analyst", "fan", "player_focus")
@@ -61,6 +61,9 @@ def localize(facts: dict, lang: str, names: Names) -> dict[str, str]:
             out[key] = LEAD[lang] if value else ""
         elif key == "metric":
             out[key] = METRIC[lang].get(value, value)
+        elif key == "state":
+            out[key] = STATE[lang][value].format(team=names.team.get(facts["team"], facts["team"]),
+                                                 gf=facts["gf"], ga=facts["ga"])
         elif isinstance(value, int | float):
             out[key] = num(float(value), lang, DECIMALS.get(key, 0))
         else:
