@@ -4,6 +4,23 @@ Explainable match intelligence for the football the camera doesn't show: off-the
 and space, linked to the passes and shots they cause. Built for the Microsoft x Premier League
 *Inside the Game* hackathon. All data is synthetic and every club and player is fictional.
 
+## How it answers the brief
+
+| Brief | Where it lives |
+| --- | --- |
+| (a) Ingest events as they happen | The live session plays each match on a clock and streams every pass, shot, tackle, recovery, pressure and possession change to the **Input** panel, beside the 22-player tracking on a 3D broadcast camera |
+| (b) Interpret into statistics and patterns | The stats engine (runs, decoys, pressing, gaps, overloads, chains, pitch control, xPass, xG) streams its detections next to the events; live pass accuracy, pass difficulty, ball and shot speed, sprints and distance; every match compared with the season so far |
+| (c) Explain why a moment matters | Foundry agents explain each moment with read-only stats and season tools, and every insight opens a 3D scene measured on the tracking: press density, support, block depth and open outlets, the decoy run and the space it opens, both defensive lines, the ball's path |
+| (d) Render on screen | Timed, machine-readable overlay packets (shown raw in the producer console), lower thirds, player tags, pass and shot cards, a clean overlay for OBS or vMix, and producer approval before air |
+| (e) Personalise | Fan, analyst, player focus and producer outputs, favourite club, followed player, a single followed metric, three languages, density, live predictions with points and streaks, replays and reposts |
+| Player identification | Name tags on the camera, speed and distance tags when thresholds are crossed |
+| Pass quality and speed | Pass distance, accuracy and a 0 to 10 difficulty rating; ball and shot speed |
+| Narratives and recaps | Kick-off previews, season records, half-time standouts, goals with the season tally, half-time and full-time recaps, catch-up |
+| Explainability | Control vs chaos, pressing changes against the season average, momentum and a match rhythm chart |
+| Data innovation | A simulator with hidden truth, 12 league matches with tracking and a season of 24 earlier rounds |
+| Multi-language | English, Spanish and Estonian, written natively and checked number by number |
+| Auto-eventing from video | Out of scope; the data contract carries a source field for computer-vision events as the roadmap |
+
 ## Status
 
 | Part | State |
@@ -134,9 +151,10 @@ managed identity in Azure. Without `--model` the crew runs on templates only.
 Run with `--unreliable 0.3` to make the storyteller misquote numbers and watch the verifier catch them, or with
 `--checkpoints <folder>` to keep checkpoints on disk. `--graph` prints the workflow as the diagram above.
 
-Across the 12 league matches with `gpt-5-mini` and the season context: 504 insights (including 11 previews, 10
-records and 14 half-time standouts), 91% explained by the model, 3,770 of 3,789 lines written by the model, 217 lines
-caught by the verifier and rewritten, 19 template fallbacks, 1,191 model calls, $1.72 in total.
+Across the 12 league matches with `gpt-5-mini`, with the season context and explanations in all three languages: 504
+insights (including 11 previews, 10 records and 14 half-time standouts), 459 explained by the model in English,
+Spanish and Estonian, 3,732 of 3,789 lines written by the model, the rest verified templates after the verifier
+rejected a draft three times.
 
 ## Run the app
 
@@ -147,22 +165,22 @@ npm --prefix web run dev
 ```
 
 Open http://localhost:5173, pick a match and press play. The screen is split in two. **Input** on the left is the
-raw tracking feed on a 2D pitch. **Output** on the right is what Databall Live makes of it for the chosen view, all on one
-broadcast clock:
+match through a 3D broadcast camera that pans with play (switch on names to tag every player), with the incoming
+events and the detections streaming underneath. **Output** on the right is what Databall Live makes of it for the
+chosen view, all on one broadcast clock:
 
 - **Fan**: the fan web app. Insights pop up as they happen, with their own look for goals, records, standouts and the
-  preview, each with an in-app replay of the moment and a repost button that renders a branded image for Instagram,
-  Facebook or X. Live predictions open when a club gets on top ("Shot in the next 5 minutes?") or every so often
-  ("Who has the next shot?") and are settled by the match itself; correct calls earn points and build a streak that
-  stays in the browser. Follow a club, see who controls the game, catch up
-- **Analyst**: an analyst desk with the headline numbers, both clubs against their season pace with form, and every
-  moment explained: what happened, why it happened, what it led to, the evidence behind it, confidence, who wrote it,
-  and a replay
+  preview. Each can be replayed as a 3D scene in the app or reposted as a branded image to Instagram, Facebook or X.
+  Live predictions open when a club gets on top and are settled by the match, with points and a streak. Follow a club,
+  follow one metric (speed, off-ball runs, pressing, chances or passing) with a live tracker, catch up
+- **Analyst**: the match rhythm, live pass quality and speeds, both clubs against their season pace with form, and
+  every moment explained: what happened, why, what it led to, the evidence, confidence and who wrote it. "See it on the
+  pitch" opens the 3D explainer scene for that moment
 - **Player focus**: the same app following one player: today against the season average and best, season totals and
   league rank, their moments, and the lines written about them
-- **Producer**: the graphics on air and the control room: approve before air, a kill switch, per-type switches, a
-  switch that cuts the model (templates keep airing), injected storyteller errors, the rundown with each insight's
-  reasoning and tools, and each agent's runs, model calls, cache hits and credit used
+- **Producer**: the graphics on air, the machine-readable packet behind them, season talking points, approve before
+  air, a kill switch, per-type switches, a switch that cuts the model, injected storyteller errors, the rundown with
+  each insight's reasoning and tools, and each agent's runs, model calls, cache hits and credit used
 
 Viewers who join late, switch view or skip ahead get every graphic that already aired for them, so jumping to the 40th
 minute fills the feed with the first 39. The app follows the system light
