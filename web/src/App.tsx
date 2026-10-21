@@ -9,7 +9,7 @@ import { strings, type Strings } from './i18n'
 import { usePitchMaps } from './pitchMaps'
 import { ProducerDesk } from './producer'
 import { useTheme } from './theme'
-import type { Lang, MatchDetail, MatchSummary, Profile, View } from './types'
+import type { Lang, MatchDetail, MatchSummary, Metric, Profile, View } from './types'
 import { useBroadcast } from './useBroadcast'
 import { InputPanel, OverlayView } from './views'
 
@@ -64,6 +64,7 @@ export default function App() {
   const [view, setView] = useState<View>(VIEWS.includes(query.get('view') as View) ? (query.get('view') as View) : 'fan')
   const [lang, setLang] = useState<Lang>((query.get('lang') ?? stored('lang') ?? 'en') as Lang)
   const [club, setClub] = useState('')
+  const [metric, setMetric] = useState<Metric>('')
   const [picked, setPicked] = useState(query.get('player') ?? '')
   const [room] = useState(() => initialRoom(query))
   const [match, setMatch] = useState<MatchDetail | null>(null)
@@ -125,8 +126,9 @@ export default function App() {
       clubs: view === 'fan' && club ? [club] : [],
       players: view === 'player' && player ? [player] : [],
       density: view === 'analyst' ? 'high' : 'medium',
+      metric: view === 'fan' || view === 'player' ? metric : '',
     }),
-    [view, lang, club, player],
+    [view, lang, club, player, metric],
   )
   const b = useBroadcast(current, room, profile)
   const maps = usePitchMaps(current)
@@ -216,7 +218,7 @@ export default function App() {
                 <span className="eyebrow">{outputLabel(view, s)}</span>
               </div>
               <div className={`output-box ${view}`}>
-                {view === 'fan' && <FanApp {...props} club={club} onClub={setClub} />}
+                {view === 'fan' && <FanApp {...props} club={club} onClub={setClub} metric={metric} onMetric={setMetric} />}
                 {view === 'analyst' && <AnalystDesk {...props} />}
                 {view === 'player' && <PlayerApp {...props} player={player} onPlayer={setPicked} />}
                 {view === 'producer' && <ProducerDesk {...props} room={room} />}

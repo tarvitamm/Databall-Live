@@ -2,6 +2,13 @@ import type { Lang } from './types'
 
 const UI = {
   en: {
+    eventsIn: 'Events in',
+    names: 'Names',
+    ev: { pass: 'Pass', shot: 'Shot', tackle: 'Tackle', interception: 'Interception', ball_recovery: 'Recovery', clearance: 'Clearance', pressure: 'Pressure', possession: 'Possession', goal: 'Goal', foul: 'Foul', kick_off: 'Kick-off' } as Record<string, string>,
+    evPass: '{d} m · difficulty {x}', evShot: '{v} km/h · {xg} xG', evWin: '{team} win the ball',
+    yourMetric: 'Your metric',
+    metricName: { '': 'Everything', speed: 'Speed', offball: 'Off-ball runs', pressing: 'Pressing', chances: 'Chances', passing: 'Passing' } as Record<string, string>,
+    live2: { title: 'Live numbers', passAcc: 'Pass accuracy', avgDiff: 'Average pass difficulty', hard: 'Hard passes completed', fastPass: 'Fastest pass', fastShot: 'Fastest shot', sprint: 'Top sprint', distance: 'Most distance', hardest: 'Hardest pass', shots: 'Shots', xg: 'xG', pressures: 'Pressures', decoys: 'Decoy runs', runs: 'Off-ball runs', rhythm: 'Match rhythm', rhythmNote: 'Momentum over time, chaos shaded, goals and insights marked', of10: 'of 10' },
     scene: {
       explain: 'See it on the pitch', measured: 'The frame every metric is measured on',
       press: '{team} press', inPossession: '{team} in possession', density: 'Press density', densityV: '{n} defenders within 10 m',
@@ -32,7 +39,7 @@ const UI = {
       details: 'Reasoning, tools and every language', hide: 'Hide details', claim: 'Claim', effect: 'Effect', tools: 'Tools called',
       talking: 'Talking points from the season', template: 'template', fallback: 'template fallback', cachedBy: 'cached',
       explanationRejected: 'Explanation rejected', recapRejected: 'Recap line rejected', lineRejected: 'Line rejected', templateFallback: 'Template fallback',
-      dropped: 'Dropped repeat', attempt: 'attempt',
+      dropped: 'Dropped repeat', attempt: 'attempt', packet: 'Machine-readable output', packetNote: 'The timed packet a graphics engine renders', packetEmpty: 'Nothing on air yet.',
     },
     status: { queued: 'Queued', awaiting_approval: 'Needs approval', aired: 'On air', rejected: 'Rejected', expired: 'Expired', killed: 'Killed', switched_off: 'Switched off' } as Record<string, string>,
     agents: { moment_router: 'Moment router', tactical_analyst: 'Tactical analyst', player_lens: 'Player lens', editor: 'Editor', storyteller: 'Storyteller', verifier: 'Verifier', recapper: 'Recapper', producer: 'Producer' } as Record<string, string>,
@@ -145,6 +152,13 @@ const UI = {
     scenario: { free: 'League match', the_press: 'The press', the_decoy: 'The decoy', the_fade: 'The fade' },
   },
   es: {
+    eventsIn: 'Eventos entrantes',
+    names: 'Nombres',
+    ev: { pass: 'Pase', shot: 'Remate', tackle: 'Entrada', interception: 'Intercepción', ball_recovery: 'Recuperación', clearance: 'Despeje', pressure: 'Presión', possession: 'Posesión', goal: 'Gol', foul: 'Falta', kick_off: 'Saque inicial' } as Record<string, string>,
+    evPass: '{d} m · dificultad {x}', evShot: '{v} km/h · {xg} xG', evWin: '{team} recupera el balón',
+    yourMetric: 'Tu dato',
+    metricName: { '': 'Todo', speed: 'Velocidad', offball: 'Desmarques', pressing: 'Presión', chances: 'Ocasiones', passing: 'Pase' } as Record<string, string>,
+    live2: { title: 'Datos en directo', passAcc: 'Precisión de pase', avgDiff: 'Dificultad media del pase', hard: 'Pases difíciles completados', fastPass: 'Pase más rápido', fastShot: 'Remate más rápido', sprint: 'Sprint más rápido', distance: 'Más distancia', hardest: 'Pase más difícil', shots: 'Remates', xg: 'xG', pressures: 'Presiones', decoys: 'Desmarques de arrastre', runs: 'Desmarques', rhythm: 'Ritmo del partido', rhythmNote: 'Impulso en el tiempo, caos sombreado, goles y claves marcados', of10: 'de 10' },
     scene: {
       explain: 'Verlo en el campo', measured: 'El fotograma sobre el que se mide cada dato',
       press: 'Presión de {team}', inPossession: 'Posesión de {team}', density: 'Densidad de presión', densityV: '{n} defensores a menos de 10 m',
@@ -175,7 +189,7 @@ const UI = {
       details: 'Razonamiento, herramientas e idiomas', hide: 'Ocultar detalles', claim: 'Afirmación', effect: 'Efecto', tools: 'Herramientas usadas',
       talking: 'Datos de la temporada para comentar', template: 'plantilla', fallback: 'plantilla de respaldo', cachedBy: 'en caché',
       explanationRejected: 'Explicación rechazada', recapRejected: 'Resumen rechazado', lineRejected: 'Texto rechazado', templateFallback: 'Plantilla de respaldo',
-      dropped: 'Repetición descartada', attempt: 'intento',
+      dropped: 'Repetición descartada', attempt: 'intento', packet: 'Salida legible por máquina', packetNote: 'El paquete con tiempos que renderiza el motor gráfico', packetEmpty: 'Aún no hay nada en antena.',
     },
     status: { queued: 'En cola', awaiting_approval: 'Pendiente', aired: 'En antena', rejected: 'Rechazada', expired: 'Caducada', killed: 'Quitada', switched_off: 'Desactivada' } as Record<string, string>,
     agents: { moment_router: 'Enrutador', tactical_analyst: 'Analista táctico', player_lens: 'Analista de jugador', editor: 'Editor', storyteller: 'Redactor', verifier: 'Verificador', recapper: 'Resumidor', producer: 'Realizador' } as Record<string, string>,
@@ -289,6 +303,13 @@ const UI = {
     scenario: { free: 'Partido de liga', the_press: 'La presión', the_decoy: 'El señuelo', the_fade: 'El desgaste' },
   },
   et: {
+    eventsIn: 'Sisenevad sündmused',
+    names: 'Nimed',
+    ev: { pass: 'Sööt', shot: 'Löök', tackle: 'Võitlus', interception: 'Pealtkuulamine', ball_recovery: 'Tagasivõit', clearance: 'Väljalöök', pressure: 'Survestus', possession: 'Valdamine', goal: 'Värav', foul: 'Rike', kick_off: 'Avalöök' } as Record<string, string>,
+    evPass: '{d} m · raskus {x}', evShot: '{v} km/h · {xg} xG', evWin: '{team} võidab palli',
+    yourMetric: 'Sinu näitaja',
+    metricName: { '': 'Kõik', speed: 'Kiirus', offball: 'Jooksud pallita', pressing: 'Press', chances: 'Võimalused', passing: 'Söödud' } as Record<string, string>,
+    live2: { title: 'Otsenumbrid', passAcc: 'Söötude täpsus', avgDiff: 'Söötude keskmine raskus', hard: 'Rasked söödud kohale', fastPass: 'Kiireim sööt', fastShot: 'Kiireim löök', sprint: 'Kiireim spurt', distance: 'Enim distantsi', hardest: 'Raskeim sööt', shots: 'Löögid', xg: 'xG', pressures: 'Survestused', decoys: 'Petteliikumised', runs: 'Jooksud pallita', rhythm: 'Mängu rütm', rhythmNote: 'Hoog ajas, kaos varjutatud, väravad ja järeldused märgitud', of10: '10-st' },
     scene: {
       explain: 'Vaata väljakul', measured: 'Kaader, millelt iga näitaja on mõõdetud',
       press: '{team} press', inPossession: 'Pall on mängijal: {team}', density: 'Pressi tihedus', densityV: '{n} kaitsjat 10 m raadiuses',
@@ -319,7 +340,7 @@ const UI = {
       details: 'Arutluskäik, tööriistad ja kõik keeled', hide: 'Peida üksikasjad', claim: 'Väide', effect: 'Mõju', tools: 'Kasutatud tööriistad',
       talking: 'Hooaja faktid kommentaatorile', template: 'mall', fallback: 'varumall', cachedBy: 'vahemälust',
       explanationRejected: 'Selgitus lükati tagasi', recapRejected: 'Kokkuvõte lükati tagasi', lineRejected: 'Tekst lükati tagasi', templateFallback: 'Varumall',
-      dropped: 'Kordus jäeti välja', attempt: 'katse',
+      dropped: 'Kordus jäeti välja', attempt: 'katse', packet: 'Masinloetav väljund', packetNote: 'Ajastatud pakett, mille graafikamootor joonistab', packetEmpty: 'Eetris pole veel midagi.',
     },
     status: { queued: 'Järjekorras', awaiting_approval: 'Ootab kinnitust', aired: 'Eetris', rejected: 'Tagasi lükatud', expired: 'Aegunud', killed: 'Eemaldatud', switched_off: 'Välja lülitatud' } as Record<string, string>,
     agents: { moment_router: 'Hetkede jaotaja', tactical_analyst: 'Taktikaanalüütik', player_lens: 'Mängijaanalüütik', editor: 'Toimetaja', storyteller: 'Kirjutaja', verifier: 'Kontrollija', recapper: 'Kokkuvõtja', producer: 'Produtsent' } as Record<string, string>,

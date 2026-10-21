@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { clock, stateLabel, type Strings } from '../i18n'
 import type { PitchMaps } from '../pitchMaps'
-import type { Compare, Lang, MatchDetail, Packet } from '../types'
+import type { Compare, Lang, LiveNumbers, MatchDetail, Packet } from '../types'
 import type { Broadcast } from '../useBroadcast'
+import { useLive } from '../useLive'
 import { Badge } from './Engage'
 import { ReplayIcon } from './Icons'
 import { SceneModal } from './Scene'
@@ -165,8 +166,115 @@ function SeasonTable({ match, b, s }: { match: MatchDetail; b: Broadcast; s: Str
   )
 }
 
+function LivePanel({ match, data, maps, s, lang }: { match: MatchDetail; data: LiveNumbers; maps: PitchMaps; s: Strings; lang: Lang }) {
+  const t = s.live2
+  const num = (v: number, d = 0) => (lang === 'en' ? v.toFixed(d) : v.toFixed(d).replace('.', ','))
+  const home = data.teams[match.home.code]
+  const away = data.teams[match.away.code]
+  const name = (pid: string | null | undefined) => (pid ? (maps.names[pid] ?? pid) : '-')
+  const rows: [string, string, string][] = [
+    [t.passAcc, `${home.pass_accuracy}%`, `${away.pass_accuracy}%`],
+    [t.avgDiff, num(home.avg_difficulty, 1), num(away.avg_difficulty, 1)],
+    [t.hard, String(home.hard_completed), String(away.hard_completed)],
+    [t.fastPass, `${home.fastest_pass_kmh} km/h`, `${away.fastest_pass_kmh} km/h`],
+    [t.fastShot, home.fastest_shot_kmh ? `${home.fastest_shot_kmh} km/h` : '-', away.fastest_shot_kmh ? `${away.fastest_shot_kmh} km/h` : '-'],
+  ]
+  const lead = data.leaders
+  return (
+    <section className="vs-season live-panel">
+      <h3 className="desk-title">{t.title}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th />
+            <th className="num us">{match.home.name}</th>
+            <th className="num opp">{match.away.name}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([label, h, a]) => (
+            <tr key={label}>
+              <td className="name">{label}</td>
+              <td className="num">{h}</td>
+              <td className="num">{a}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="desk-signals">
+        <span>
+          {t.sprint} <em>{name(lead.sprint.player)} {num(lead.sprint.kmh, 1)} km/h</em>
+        </span>
+        <span>
+          {t.distance} <em>{name(lead.distance.player)} {num(lead.distance.km, 2)} km</em>
+        </span>
+        {lead.pass && (
+          <span>
+            {t.hardest} <em>{name(lead.pass.player)} → {name(lead.pass.recipient)}, {num(lead.pass.difficulty, 1)} {t.of10}, {lead.pass.m} m</em>
+          </span>
+        )}
+        {lead.shot && (
+          <span>
+            {t.fastShot} <em>{name(lead.shot.player)} {lead.shot.kmh} km/h</em>
+          </span>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function Rhythm({ match, data, feed, s }: { match: MatchDetail; data: LiveNumbers; feed: Packet[]; s: Strings }) {
+  const W = 600
+  const H = 130
+  const MID = 64
+  const [s1, e1] = data.rhythm.periods['1']
+  const [s2, e2] = data.rhythm.periods['2']
+  const first = e1 - s1
+  const total = first + (e2 - s2)
+  const x = (period: number, t: number) => ((period === 1 ? t - s1 : first + (t - s2)) / total) * W
+  const m = data.rhythm.momentum
+  const scale = 52 / Math.max(0.05, ...m.map((r) => Math.abs(r[2])))
+  const pts = m.map((r) => `${x(r[0], r[1]).toFixed(1)},${(MID - r[2] * scale).toFixed(1)}`)
+  const area = pts.length > 1 ? `M${pts[0].split(',')[0]},${MID} L${pts.join(' L')} L${pts[pts.length - 1].split(',')[0]},${MID} Z` : ''
+  return (
+    <section className="vs-season rhythm">
+      <h3 className="desk-title">{s.live2.rhythm}</h3>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={s.live2.rhythmNote}>
+        <defs>
+          <clipPath id="rh-top">
+            <rect x="0" y="0" width={W} height={MID} />
+          </clipPath>
+          <clipPath id="rh-bottom">
+            <rect x="0" y={MID} width={W} height={H - MID} />
+          </clipPath>
+        </defs>
+        {data.rhythm.chaos.map(([period, tEnd, chaos]) => (
+          <rect key={`${period}-${tEnd}`} className="rh-chaos" x={x(period, tEnd - 300)} y="0" width={Math.max(1, x(period, tEnd) - x(period, tEnd - 300))} height={H - 14} style={{ opacity: Math.max(0, Math.min(0.4, (chaos - 45) / 80)) }} />
+        ))}
+        <line className="rh-axis" x1="0" x2={W} y1={MID} y2={MID} />
+        <line className="rh-half" x1={x(2, s2)} x2={x(2, s2)} y1="0" y2={H - 14} />
+        <path className="rh-us" d={area} clipPath="url(#rh-top)" />
+        <path className="rh-opp" d={area} clipPath="url(#rh-bottom)" />
+        <polyline className="rh-line" points={pts.join(' ')} />
+        {feed.map((p) => (
+          <line key={p.packet} className="rh-tick" x1={x(p.period, p.show_at)} x2={x(p.period, p.show_at)} y1={H - 12} y2={H - 4} />
+        ))}
+        {data.rhythm.goals.map(([period, t, team], i) => (
+          <g key={i} transform={`translate(${x(period, t)}, ${team === match.home.code ? 10 : H - 26})`}>
+            <rect x="-6" y="-6" width="12" height="12" transform="rotate(45)" className={team === match.home.code ? 'rh-goal us' : 'rh-goal opp'} />
+          </g>
+        ))}
+        <text x="2" y={H - 1} className="rh-label">1'</text>
+        <text x={x(2, s2) + 3} y={H - 1} className="rh-label">46'</text>
+      </svg>
+      <p className="desk-note">{s.live2.rhythmNote}</p>
+    </section>
+  )
+}
+
 export function AnalystDesk({ match, b, maps, s, lang }: { match: MatchDetail; b: Broadcast; maps: PitchMaps; s: Strings; lang: Lang }) {
   const st = b.state
+  const live = useLive(match, b.now)
   const [home, away] = st?.control ?? [50, 50]
   const share = home + away > 0 ? Math.round((home / (home + away)) * 100) : 50
   return (
@@ -197,6 +305,8 @@ export function AnalystDesk({ match, b, maps, s, lang }: { match: MatchDetail; b
           <div className="l">{stateLabel(st?.label ?? 'balanced', s)}</div>
         </div>
       </div>
+      {live && <Rhythm match={match} data={live} feed={b.feed} s={s} />}
+      {live && <LivePanel match={match} data={live} maps={maps} s={s} lang={lang} />}
       <SeasonTable match={match} b={b} s={s} />
       <h3 className="desk-title">{s.explained}</h3>
       {b.feed.length === 0 && <p className="empty">{s.noInsights}</p>}

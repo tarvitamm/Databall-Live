@@ -2,8 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { api } from '../api'
 import { clock, stateLabel, type Strings } from '../i18n'
 import type { PitchMaps } from '../pitchMaps'
-import type { CatchUp, Lang, MatchDetail, Packet, PlayerStats } from '../types'
+import type { CatchUp, Lang, MatchDetail, Metric, Packet, PlayerStats } from '../types'
 import type { Broadcast } from '../useBroadcast'
+import { useLive } from '../useLive'
 import { badgeFor } from '../badges'
 import { Badge, CallsList, PredictionPopup, ResultPopup, ScoreChip } from './Engage'
 import { CloseIcon, Mark, ReplayIcon, ShareIcon } from './Icons'
@@ -246,7 +247,69 @@ function CatchUpSheet({ match, b, lang, s, onClose }: { match: MatchDetail; b: B
   )
 }
 
-export function FanApp({ club, onClub, ...props }: AppProps & { club: string; onClub: (code: string) => void }) {
+const METRICS: Metric[] = ['', 'speed', 'offball', 'pressing', 'chances', 'passing']
+
+function MetricTracker({ match, b, s, maps, lang, metric }: AppProps & { metric: Metric }) {
+  const data = useLive(match, b.now)
+  if (!metric || !data) return null
+  const t = s.live2
+  const num = (v: number, d = 0) => (lang === 'en' ? v.toFixed(d) : v.toFixed(d).replace('.', ','))
+  const home = data.teams[match.home.code]
+  const away = data.teams[match.away.code]
+  const lead = data.leaders
+  const name = (pid: string | null | undefined) => (pid ? (maps.names[pid] ?? pid) : '-')
+  const team: [string, string, number, number][] = []
+  const people: [string, string][] = []
+  if (metric === 'speed') {
+    people.push([t.sprint, `${name(lead.sprint.player)} · ${num(lead.sprint.kmh, 1)} km/h`])
+    people.push([t.distance, `${name(lead.distance.player)} · ${num(lead.distance.km, 2)} km`])
+    if (lead.shot) people.push([t.fastShot, `${name(lead.shot.player)} · ${lead.shot.kmh} km/h`])
+  } else if (metric === 'offball') {
+    team.push([t.decoys, 'decoy_runs', home.decoy_runs, away.decoy_runs], [t.runs, 'runs', home.runs, away.runs])
+  } else if (metric === 'pressing') {
+    team.push([t.pressures, 'pressures', home.pressures, away.pressures])
+  } else if (metric === 'chances') {
+    team.push([t.shots, 'shots', home.shots, away.shots], [t.xg, 'xg', home.xg, away.xg])
+    if (lead.shot) people.push([t.fastShot, `${name(lead.shot.player)} · ${lead.shot.kmh} km/h`])
+  } else {
+    team.push([t.passAcc, 'pass_accuracy', home.pass_accuracy, away.pass_accuracy], [t.hard, 'hard_completed', home.hard_completed, away.hard_completed])
+    if (lead.pass) people.push([t.hardest, `${name(lead.pass.player)} → ${name(lead.pass.recipient)} · ${num(lead.pass.difficulty, 1)} ${t.of10}`])
+  }
+  return (
+    <section className="tracker">
+      <div className="tracker-head">
+        <span className="dot" />
+        {s.metricName[metric]}
+      </div>
+      {team.map(([label, key, h, a]) => (
+        <div key={key} className="tracker-row">
+          <span className="tracker-label">{label}</span>
+          <div className="tracker-vs">
+            <b className="us">{key === 'xg' ? num(h, 2) : h}{key === 'pass_accuracy' ? '%' : ''}</b>
+            <div className="split">
+              <i className="us" style={{ width: `${(h / Math.max(h + a, 0.001)) * 100}%` }} />
+              <i className="opp" style={{ width: `${(a / Math.max(h + a, 0.001)) * 100}%` }} />
+            </div>
+            <b className="opp">{key === 'xg' ? num(a, 2) : a}{key === 'pass_accuracy' ? '%' : ''}</b>
+          </div>
+        </div>
+      ))}
+      {people.map(([label, value]) => (
+        <div key={label} className="tracker-row person">
+          <span className="tracker-label">{label}</span>
+          <b>{value}</b>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+export function FanApp({ club, onClub, metric, onMetric, ...props }: AppProps & {
+  club: string
+  onClub: (code: string) => void
+  metric: Metric
+  onMetric: (m: Metric) => void
+}) {
   const { match, b, s } = props
   const [catchUp, setCatchUp] = useState(false)
   const ticker = b.tags[0]?.text ?? b.cards[0]?.text.headline
@@ -259,6 +322,15 @@ export function FanApp({ club, onClub, ...props }: AppProps & { club: string; on
           </button>
         ))}
       </div>
+      <div className="app-chips metric-chips">
+        <span>{s.yourMetric}</span>
+        {METRICS.map((m) => (
+          <button key={m || 'all'} className={metric === m ? 'on' : ''} onClick={() => onMetric(m)}>
+            {s.metricName[m]}
+          </button>
+        ))}
+      </div>
+      <MetricTracker {...props} metric={metric} />
       {ticker && (
         <div className="app-ticker">
           <span className="dot" />

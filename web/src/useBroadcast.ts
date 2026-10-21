@@ -5,6 +5,8 @@ import type { Tag, Trail } from './components/Pitch'
 import type {
   DetectMsg,
   Detection,
+  EventItem,
+  EventsMsg,
   FrameMsg,
   HistoryMsg,
   MatchDetail,
@@ -78,6 +80,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
   const [state, setState] = useState<StateMsg | null>(null)
   const [trails, setTrails] = useState<Timed<Trail>[]>([])
   const [detections, setDetections] = useState<{ items: Detection[]; count: number }>({ items: [], count: 0 })
+  const [events, setEvents] = useState<{ items: EventItem[]; count: number }>({ items: [], count: 0 })
   const [calls, setCalls] = useState<Record<string, Call>>({})
   const [picks, setPicks] = useState<Record<string, string>>({})
   const picksRef = useRef(picks)
@@ -166,6 +169,9 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
       } else if (msg.kind === 'detect') {
         const m = msg as DetectMsg
         setDetections((d) => ({ items: [...[...m.items].reverse(), ...d.items].slice(0, 8), count: m.count }))
+      } else if (msg.kind === 'events') {
+        const m = msg as EventsMsg
+        setEvents((d) => ({ items: [...[...m.items].reverse(), ...d.items].slice(0, 8), count: m.count }))
       } else if (msg.kind === 'prediction') {
         const m = msg as Prediction
         setCalls((all) => ({ ...all, [m.id]: { prompt: m, received: Date.now() } }))
@@ -193,6 +199,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
         setFeed([])
         setCalls({})
         setDetections({ items: [], count: 0 })
+        setEvents({ items: [], count: 0 })
         setPicks({})
       }
     })
@@ -224,6 +231,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
     state,
     trails: trails.filter((x) => showing(x, now)),
     detections,
+    events,
     calls: Object.values(calls).sort((a, b) => b.prompt.period - a.prompt.period || b.prompt.opens - a.prompt.opens),
     picks,
     pick: (id: string, option: string) => setPicks((all) => (all[id] ? all : { ...all, [id]: option })),

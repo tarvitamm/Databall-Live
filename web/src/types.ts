@@ -136,12 +136,15 @@ export interface CatchUp {
   state: { label: string; chaos: number; control: [number, number] }
 }
 
+export type Metric = '' | 'speed' | 'offball' | 'pressing' | 'chances' | 'passing'
+
 export interface Profile {
   mode: Mode
   lang: Lang
   clubs: string[]
   players: string[]
   density: Density
+  metric: Metric
 }
 
 export interface TransportMsg {
@@ -165,9 +168,47 @@ export interface DetectMsg {
   count: number
 }
 
+export interface EventItem {
+  id: string
+  type: string
+  team: string | null
+  player: string | null
+  recipient?: string | null
+  period: number
+  t: number
+  outcome?: string | null
+  distance?: number
+  difficulty?: number
+  speed?: number
+  complete?: boolean
+  xg?: number
+}
+
+export interface EventsMsg {
+  kind: 'events'
+  items: EventItem[]
+  count: number
+}
+
+export interface LiveNumbers {
+  teams: Record<string, Record<string, number>>
+  leaders: {
+    sprint: { player: string; kmh: number }
+    distance: { player: string; km: number }
+    pass: { player: string; recipient: string | null; difficulty: number; m: number } | null
+    shot: { player: string; kmh: number } | null
+  }
+  rhythm: {
+    momentum: [number, number, number][]
+    chaos: [number, number, number, string][]
+    goals: [number, number, string][]
+    periods: Record<string, [number, number]>
+  }
+}
+
 export interface HistoryMsg {
   kind: 'history'
   packets: Packet[]
 }
 
-export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | DetectMsg | Prediction | PredictionResult | { kind: 'end' | 'clear' }
+export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | DetectMsg | EventsMsg | Prediction | PredictionResult | { kind: 'end' | 'clear' }

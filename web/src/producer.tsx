@@ -300,6 +300,8 @@ export function ProducerDesk({ match, room, b, maps, s, lang }: ProducerProps) {
   const usage = c.crew?.model
   const model = usage?.model ?? 'model'
   const highlight = b.lowerThird?.data.players?.slice(0, 3) ?? []
+  const shown = b.lowerThird ?? b.feed[0]
+  const onAir = shown ? (({ received: _received, ...rest }) => rest)(shown) : null
   const card = (ins: Insight) => (
     <InsightCard
       key={ins.id}
@@ -367,6 +369,14 @@ export function ProducerDesk({ match, room, b, maps, s, lang }: ProducerProps) {
           })}
         </div>
       </section>
+
+      <details className="packet-view">
+        <summary>
+          {t.packet}
+          <span>{t.packetNote}</span>
+        </summary>
+        {onAir ? <pre>{JSON.stringify(onAir, null, 2)}</pre> : <p className="empty">{t.packetEmpty}</p>}
+      </details>
 
       <TalkingPoints match={match} lang={lang} title={t.talking} />
 
