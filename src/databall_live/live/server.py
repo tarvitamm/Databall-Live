@@ -130,6 +130,59 @@ def talking_points(match_id: str, lang: str = "en") -> list[str]:
     return season_talk(b.md, _season(b), lang if lang in ("en", "es", "et") else "en")
 
 
+@app.get("/api/matches/{match_id}/live")
+def live_numbers(match_id: str, period: int, t: float) -> dict:
+    """Pass quality, speeds, leaders and the rhythm of the match so far."""
+    b = _bundle(match_id)
+    md = b.md
+    events = {e["id"]: e for e in md.events}
+    done = {i for i, e in events.items() if _before(e, period, t, "t")}
+    passes = [p for p in b.metrics["passes"] if p["event"] in done]
+    shots = [x for x in b.metrics["shots"] if x["event"] in done]
+    mine_patterns = [p for p in b.patterns if _before(p, period, t)]
+    teams = {}
+    for k, code in enumerate(md.codes):
+        own = [p for p in passes if p["team"] == k]
+        made = [p for p in own if p["complete"]]
+        hit = [x for x in shots if x["team"] == k]
+        teams[code] = {
+            "passes": len(own),
+            "pass_accuracy": round(100 * len(made) / len(own)) if own else 0,
+            "avg_difficulty": round(float(np.mean([p["difficulty"] for p in own])), 1) if own else 0.0,
+            "hard_completed": sum(1 for p in made if p["difficulty"] >= 6),
+            "fastest_pass_kmh": round(max((p["speed_kmh"] for p in made), default=0.0)),
+            "fastest_shot_kmh": round(max((x["speed_kmh"] for x in hit), default=0.0)),
+            "shots": len(hit),
+            "xg": round(sum(x["xg"] or 0.0 for x in hit), 2),
+            "pressures": sum(1 for i in done if events[i]["type"] == "pressure" and events[i].get("team") == code),
+            "decoy_runs": sum(1 for p in mine_patterns if p["type"] == "decoy_run" and p.get("team") == code),
+            "runs": sum(1 for p in mine_patterns if p["type"] in RUN_TYPES and p.get("team") == code),
+        }
+    upto = int(b.frame(period, t)) + 1
+    speed = b.kin.speed[:upto]
+    top = np.nan_to_num(np.nanmax(speed, axis=0)) * 3.6 if upto > 1 else np.zeros(len(md.ids))
+    distance = np.nan_to_num(np.nansum(speed, axis=0)) / md.hz / 1000.0
+    hard = max((p for p in passes if p["complete"]), key=lambda p: p["difficulty"], default=None)
+    fast = max(shots, key=lambda x: x["speed_kmh"], default=None)
+    leaders = {
+        "sprint": {"player": md.ids[int(np.argmax(top))], "kmh": round(float(top.max()), 1)},
+        "distance": {"player": md.ids[int(np.argmax(distance))], "km": round(float(distance.max()), 2)},
+        "pass": None if hard is None else {"player": md.ids[hard["passer"]],
+                                            "recipient": events[hard["event"]].get("recipient"),
+                                            "difficulty": round(hard["difficulty"], 1), "m": round(hard["distance_m"])},
+        "shot": None if fast is None else {"player": md.ids[fast["shooter"]], "kmh": round(fast["speed_kmh"])},
+    }
+    rows = [m for m in b.metrics["momentum"] if m[0] < period or (m[0] == period and m[1] <= t)]
+    rhythm = {
+        "momentum": [[m[0], round(m[1]), round(m[2], 3)] for m in rows[::3]],
+        "chaos": [[x["period"], x["t_end"], x["chaos"], x["label"]] for x in b.metrics["state"]
+                  if _before(x, period, t)],
+        "goals": [[g[0], g[1], g[2]] for g in b.goals if g[0] < period or (g[0] == period and g[1] <= t)],
+        "periods": {str(p): list(bounds) for p, bounds in b.period_bounds.items()},
+    }
+    return {"teams": teams, "leaders": leaders, "rhythm": rhythm}
+
+
 @app.get("/api/matches/{match_id}/compare")
 def compare(match_id: str, period: int, t: float) -> dict:
     """Each team so far against its season average, scaled to the minutes played for counting stats."""
@@ -267,6 +320,7 @@ async def live_viewer(ws: WebSocket, match_id: str) -> None:
         period, t = session.now
         await ws.send_json(state_message(session.b, period, t))
         await ws.send_json({"kind": "detect", "items": session.recent_detections(), "count": session.detect_k})
+        await ws.send_json({"kind": "events", "items": session.recent_events(), "count": session.ingest_k})
         await session.send_history(ws, viewer)
         session.viewers[ws] = viewer
         while True:

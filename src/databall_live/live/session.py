@@ -28,6 +28,8 @@ LOWER_THIRD_S = 12.0
 CATCH_UP_S = 45.0
 TRANSPORT = {"play", "pause", "speed", "seek"}
 CATCH_UP_GROUP = 18
+INGEST_SKIP = {"carry", "out_of_play", "half_start", "half_end"}
+GAINS = {"pass", "shot", "tackle", "interception", "ball_recovery"}
 MAX_SESSIONS = 8
 MAX_ANALYSES = 4
 
@@ -59,6 +61,12 @@ class LiveSession:
         self.season = season or Season([])
         self.detections = sorted(analysis.patterns, key=lambda p: (p.period, p.t_end))
         self.detect_k = 0
+        self.ingest = sorted((e for e in bundle.md.events if e["type"] not in INGEST_SKIP),
+                             key=lambda e: (e["period"], e["t"]))
+        self.ingest_k = 0
+        self.possession: str | None = None
+        self.pass_by_event = {p["event"]: p for p in bundle.metrics["passes"]}
+        self.shot_by_event = {x["event"]: x for x in bundle.metrics["shots"]}
         self.control = Control(model=foundry is not None)
         self.speed = 1.0
         self.playing = False
@@ -233,6 +241,49 @@ class LiveSession:
     def recent_detections(self, n: int = 6) -> list[dict]:
         return [self._detection(p) for p in self.detections[max(0, self.detect_k - n):self.detect_k]]
 
+    def _event(self, e: dict) -> dict:
+        item = {"id": e["id"], "type": e["type"], "team": e.get("team"), "player": e.get("player"),
+                "recipient": e.get("recipient"), "period": e["period"], "t": round(e["t"], 1),
+                "outcome": e.get("outcome")}
+        if e["type"] == "pass" and e["id"] in self.pass_by_event:
+            m = self.pass_by_event[e["id"]]
+            item.update(distance=round(m["distance_m"]), difficulty=round(m["difficulty"], 1),
+                        speed=round(m["speed_kmh"]), complete=m["complete"])
+        elif e["type"] == "shot" and e["id"] in self.shot_by_event:
+            m = self.shot_by_event[e["id"]]
+            item.update(speed=round(m["speed_kmh"]), xg=round(m["xg"] or 0.0, 2))
+        return item
+
+    def recent_events(self, n: int = 8) -> list[dict]:
+        out = []
+        team = None
+        for e in self.ingest[:self.ingest_k]:
+            if e["type"] in GAINS and e.get("team") and e["team"] != team:
+                if team is not None:
+                    out.append({"id": f"pos_{e['id']}", "type": "possession", "team": e["team"], "player": None,
+                                "period": e["period"], "t": round(e["t"], 1)})
+                team = e["team"]
+            out.append(self._event(e))
+        self.possession = team
+        return out[-n:]
+
+    async def _ingest(self) -> None:
+        """Stream the incoming match events as the clock passes them, with possession changes."""
+        fresh = []
+        while self.ingest_k < len(self.ingest):
+            e = self.ingest[self.ingest_k]
+            if not _before((e["period"], e["t"]), self.now):
+                break
+            if e["type"] in GAINS and e.get("team") and e["team"] != self.possession:
+                if self.possession is not None:
+                    fresh.append({"id": f"pos_{e['id']}", "type": "possession", "team": e["team"], "player": None,
+                                  "period": e["period"], "t": round(e["t"], 1)})
+                self.possession = e["team"]
+            fresh.append(self._event(e))
+            self.ingest_k += 1
+        if fresh:
+            await self.to_viewers({"kind": "events", "items": fresh[-8:], "count": self.ingest_k})
+
     async def _detect(self) -> None:
         """Stream what the detectors see as the match clock passes it."""
         fresh = []
@@ -319,6 +370,7 @@ class LiveSession:
                 await self.to_consoles(frame)
             await self._release()
             await self._predictions()
+            await self._ingest()
             await self._detect()
             if self.k % (5 * md.hz) == 0:
                 period, t = self.now
@@ -381,6 +433,8 @@ class LiveSession:
         await self.to_viewers({"kind": "clear"})
         self.detect_k = sum(1 for p in self.detections if _before((p.period, p.t_end), self.now))
         await self.to_viewers({"kind": "detect", "items": self.recent_detections(), "count": self.detect_k})
+        self.ingest_k = sum(1 for e in self.ingest if _before((e["period"], e["t"]), self.now))
+        await self.to_viewers({"kind": "events", "items": self.recent_events(), "count": self.ingest_k})
         period, t = self.now
         await self._send(list(self.viewers) + list(self.consoles), frame_message(self.b, self.k))
         await self._send(list(self.viewers) + list(self.consoles), state_message(self.b, period, t))

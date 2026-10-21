@@ -7,6 +7,13 @@ from dataclasses import dataclass
 from ..contracts import ViewerProfile
 
 DENSITY_GAP_S = {"low": 180.0, "medium": 75.0, "high": 30.0}
+METRIC_TYPES = {
+    "speed": {"speed_tag", "match_top_speed", "record", "distance_milestone", "shot_speed"},
+    "offball": {"decoy_run", "between_lines_gap", "overload", "standout"},
+    "pressing": {"pressure_shift", "counter_press", "match_state"},
+    "chances": {"chain", "shot_speed", "momentum_swing"},
+    "passing": {"difficult_pass", "line_breaking_pass", "between_lines_gap"},
+}
 
 
 def absolute(period: int, t: float) -> float:
@@ -29,7 +36,7 @@ class Viewer:
         data = packet.get("data", {})
         players = set(data.get("players", []))
         teams = set(data.get("teams", []))
-        followed = bool(players & set(prof.players))
+        followed = bool(players & set(prof.players)) or data.get("type") in METRIC_TYPES.get(prof.metric or "", set())
         if data.get("kind") == "tag":
             return followed or prof.density != "low" or prof.mode == "analyst"
         if packet["slot"] == "panel":
@@ -56,6 +63,7 @@ class Viewer:
         if data.get("kind") == "tag" or packet["slot"] == "panel":
             return True
         followed = bool(set(data.get("players", [])) & set(self.profile.players))
+        followed = followed or data.get("type") in METRIC_TYPES.get(self.profile.metric or "", set())
         now = absolute(packet["period"], packet["show_at"])
         gap = DENSITY_GAP_S[self.profile.density]
         if packet["priority"] > 1 and not followed and now - self.last_lower_third < gap:

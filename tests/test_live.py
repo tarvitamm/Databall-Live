@@ -60,3 +60,12 @@ def test_season_comparisons_and_talking_points(client):
     assert player["season"]["games"] == 3
     points = client.get("/api/matches/m_0031/talking-points").json()
     assert any(p.startswith("Last meeting") for p in points)
+
+
+def test_live_numbers_cover_passing_speed_and_rhythm(client):
+    data = client.get("/api/matches/m_0031/live", params={"period": 2, "t": 1e9}).json()
+    home = data["teams"]["HAR"]
+    assert 0 <= home["pass_accuracy"] <= 100 and home["passes"] > 0
+    assert 0 <= home["avg_difficulty"] <= 10
+    assert data["leaders"]["sprint"]["kmh"] > 20
+    assert data["rhythm"]["momentum"] and data["rhythm"]["periods"].keys() == {"1", "2"}

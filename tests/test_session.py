@@ -145,3 +145,26 @@ def test_viewers_get_prompts_before_results(match):
     for kind, pid in kinds:
         if kind == "prediction_result":
             assert ("prediction", pid) in kinds[:kinds.index((kind, pid))]
+
+
+def test_events_stream_with_pass_quality_and_possession(match):
+    session, viewer, _ = session_with_audience(match)
+
+    async def run() -> None:
+        while session.k < 3000:
+            await session._ingest()
+            session.k += 10
+
+    asyncio.run(run())
+    items = [i for m in viewer.out if m["kind"] == "events" for i in m["items"]]
+    passes = [i for i in items if i["type"] == "pass" and "difficulty" in i]
+    assert passes and all(0 <= p["difficulty"] <= 10 for p in passes)
+    assert any(i["type"] == "possession" for i in items)
+
+
+def test_a_followed_metric_gets_past_the_density_limit():
+    tag = {"lang": "en", "slot": "player_tag", "persona": "fan", "priority": 5, "period": 1, "show_at": 10.0,
+           "data": {"type": "speed_tag", "kind": "tag", "players": ["HAR_7"], "teams": ["HAR"]}}
+    quiet = Viewer(ViewerProfile(viewer="a", mode="fan", lang="en", density="low"))
+    keen = Viewer(ViewerProfile(viewer="b", mode="fan", lang="en", density="low", metric="speed"))
+    assert not quiet.wants(tag) and keen.wants(tag)
