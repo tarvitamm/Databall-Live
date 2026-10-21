@@ -90,9 +90,18 @@ export default function App() {
   useEffect(() => {
     if (!id) return
     let live = true
-    api.match(id).then((m) => live && setMatch(m))
+    let timer = 0
+    const load = () =>
+      api
+        .match(id)
+        .then((m) => live && setMatch(m))
+        .catch(() => {
+          if (live) timer = window.setTimeout(load, 1500)
+        })
+    load()
     return () => {
       live = false
+      clearTimeout(timer)
     }
   }, [id])
 
