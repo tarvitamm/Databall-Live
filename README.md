@@ -53,9 +53,24 @@ uv run blindside-analyse data/league/m_0102 --eval
 uv run python -m blindside.stats.evaluate data/league
 ```
 
-`blindside-analyse` writes `patterns.jsonl` and `metrics.json` next to the match. Retrain the pass and xG models with
+`blindside-analyse` writes `patterns.jsonl`, `metrics.json` and `summary.json` (team and player numbers) next to the
+match. Retrain the pass and xG models with
 `uv run python -m blindside.stats.train data/league`. The evaluation reads `truth.json` and is the only code
 that does.
+
+## The season so far
+
+Insights compare every match with the ones played before it. The earlier rounds are simulated and analysed once, and
+only their summaries are kept:
+
+```bash
+uv run python -m blindside.sim.batch --first-seed 1 --count 24 --scenarios free,the_press,free,the_decoy,free,the_fade --out data/season
+ls -d data/season/m_* | xargs -P 6 -I{} sh -c 'uv run blindside-analyse {} && rm {}/tracking.jsonl'
+```
+
+For a league match, the season is every summary in `data/season` and every earlier match in its own league. A live
+broadcast never sees a match that comes after it. The season gives averages, bests, totals, league ranks, form and the
+last meeting.
 
 ## The insight crew
 
@@ -67,6 +82,12 @@ repeats, the storyteller agent writes every persona and language, the verifier c
 (numbers may be rounded from the facts or tool results, never invented; only players in the facts or tool results
 may be named) and sends failed lines back for a rewrite, the recapper agent writes the half-time and full-time
 panels from what aired, and the producer schedules it all.
+
+With the season, the crew also writes a kick-off preview (last meeting, form and the off-ball specialist to watch),
+season-best and league-best sprints, the most decoy runs in a game this season, half-time standouts (players well
+above their usual pace), pressing against the club's season average, decoy runs with season totals and league rank,
+and goals with the scorer's season tally and the score. The analyst agents have a season tool for the same numbers,
+and the verifier checks them like any other.
 
 Every model step has a deadline. A missed deadline, a model error, a rejected explanation or a third rejected line
 falls back to a template, so something accurate always airs on time. The workflow checkpoints at every superstep.
@@ -113,8 +134,9 @@ managed identity in Azure. Without `--model` the crew runs on templates only.
 Run with `--unreliable 0.3` to make the storyteller misquote numbers and watch the verifier catch them, or with
 `--checkpoints <folder>` to keep checkpoints on disk. `--graph` prints the workflow as the diagram above.
 
-Across the 12 league matches with `gpt-5-mini`: 468 insights, 91% explained by the model, 3,361 of 3,363 lines
-written by the model, 81 lines caught by the verifier, 2 template fallbacks, 1,060 model calls, $1.36 in total.
+Across the 12 league matches with `gpt-5-mini` and the season context: 504 insights (including 11 previews, 10
+records and 14 half-time standouts), 91% explained by the model, 3,770 of 3,789 lines written by the model, 217 lines
+caught by the verifier and rewritten, 19 template fallbacks, 1,191 model calls, $1.72 in total.
 
 ## Run the app
 
@@ -128,17 +150,22 @@ Open http://localhost:5173, pick a match and press play. The screen is split in 
 raw tracking feed on a 2D pitch. **Output** on the right is what Blindside makes of it for the chosen view, all on one
 broadcast clock:
 
-- **Fan**: the fan web app. Insights pop up as they happen, each with an in-app replay of the moment and a repost
-  button that renders a branded image for Instagram, Facebook or X. Follow a club, see who controls the game, catch up
-- **Analyst**: an analyst desk with the headline numbers and every moment explained: what happened, why it happened,
-  what it led to, the evidence behind it, confidence, who wrote it, and a replay
-- **Player focus**: the same app following one player: running, off-ball and on-ball numbers, their moments, and the
-  lines written about them
+- **Fan**: the fan web app. Insights pop up as they happen, with their own look for goals, records, standouts and the
+  preview, each with an in-app replay of the moment and a repost button that renders a branded image for Instagram,
+  Facebook or X. Live predictions open when a club gets on top ("Shot in the next 5 minutes?") or every so often
+  ("Who has the next shot?") and are settled by the match itself; correct calls earn points and build a streak that
+  stays in the browser. Follow a club, see who controls the game, catch up
+- **Analyst**: an analyst desk with the headline numbers, both clubs against their season pace with form, and every
+  moment explained: what happened, why it happened, what it led to, the evidence behind it, confidence, who wrote it,
+  and a replay
+- **Player focus**: the same app following one player: today against the season average and best, season totals and
+  league rank, their moments, and the lines written about them
 - **Producer**: the graphics on air and the control room: approve before air, a kill switch, per-type switches, a
   switch that cuts the model (templates keep airing), injected storyteller errors, the rundown with each insight's
   reasoning and tools, and each agent's runs, model calls, cache hits and credit used
 
-Viewers who join late or switch view get the graphics that already aired for them. The app follows the system light
+Viewers who join late, switch view or skip ahead get every graphic that already aired for them, so jumping to the 40th
+minute fills the feed with the first 39. The app follows the system light
 or dark setting and has a switch for both.
 
 Each browser gets its own broadcast room, so viewers do not share a clock unless they share a `room` in the URL.
