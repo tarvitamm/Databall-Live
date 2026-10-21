@@ -21,7 +21,8 @@ class Viewer:
     def reset(self) -> None:
         self.last_lower_third = -1e9
 
-    def wants(self, packet: dict, has_focus_line: bool = False) -> bool:
+    def fits(self, packet: dict, has_focus_line: bool = False) -> bool:
+        """Whether a packet suits this viewer's mode, language, clubs and players, ignoring density."""
         prof = self.profile
         if packet["lang"] != prof.lang:
             return False
@@ -45,10 +46,19 @@ class Viewer:
             ok = persona == "fan"
         if not ok:
             return False
-        if prof.mode == "fan" and prof.clubs and not teams & set(prof.clubs) and data.get("significance", 0) < 0.6:
+        return not (prof.mode == "fan" and prof.clubs and not teams & set(prof.clubs)
+                    and data.get("significance", 0) < 0.6)
+
+    def wants(self, packet: dict, has_focus_line: bool = False) -> bool:
+        if not self.fits(packet, has_focus_line):
             return False
+        data = packet.get("data", {})
+        if data.get("kind") == "tag" or packet["slot"] == "panel":
+            return True
+        followed = bool(set(data.get("players", [])) & set(self.profile.players))
         now = absolute(packet["period"], packet["show_at"])
-        if packet["priority"] > 1 and not followed and now - self.last_lower_third < DENSITY_GAP_S[prof.density]:
+        gap = DENSITY_GAP_S[self.profile.density]
+        if packet["priority"] > 1 and not followed and now - self.last_lower_third < gap:
             return False
         self.last_lower_third = now
         return True

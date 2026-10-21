@@ -207,6 +207,7 @@ async def live_viewer(ws: WebSocket, match_id: str) -> None:
         await ws.send_json(frame_message(session.b, session.k))
         period, t = session.now
         await ws.send_json(state_message(session.b, period, t))
+        await session.send_history(ws, viewer)
         session.viewers[ws] = viewer
         while True:
             msg = await ws.receive_json()
@@ -214,6 +215,7 @@ async def live_viewer(ws: WebSocket, match_id: str) -> None:
                 viewer.profile = viewer.profile.model_copy(update={k: v for k, v in msg["profile"].items()
                                                                   if k in ViewerProfile.model_fields})
                 viewer.reset()
+                await session.send_history(ws, viewer)
             elif msg.get("kind") == "control" and msg.get("action") in TRANSPORT:
                 await session.command(msg)
     except WebSocketDisconnect:

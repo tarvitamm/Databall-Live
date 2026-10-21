@@ -63,6 +63,7 @@ class LiveSession:
         self.statuses: dict[str, str] = {}
         self.insights: dict[str, dict] = {}
         self.held: list[tuple[dict, float]] = []
+        self.aired: list[dict] = []
         self.notes: list[dict] = []
         self.task: asyncio.Task | None = None
         self.crew_task: asyncio.Task | None = None
@@ -185,7 +186,13 @@ class LiveSession:
         sends = [ws for ws, viewer in self.viewers.items() if viewer.wants(packet, packet.get("insight") in self.focus)]
         await self._send(sends, {"kind": "packet", **packet})
         if packet["slot"] == "lower_third":
+            self.aired.append(packet)
             await self._status(packet.get("insight"), "aired")
+
+    async def send_history(self, ws: WebSocket, viewer: Viewer, limit: int = 15) -> None:
+        """Graphics that already aired and suit this viewer, so joining or switching view never starts empty."""
+        fitting = [p for p in self.aired if viewer.fits(p, p.get("insight") in self.focus)]
+        await self._send([ws], {"kind": "history", "packets": fitting[-limit:]})
 
     async def _release(self) -> None:
         period, t = self.now
@@ -297,6 +304,7 @@ class LiveSession:
         self.k = self.b.frame(period, t)
         self._reset_crew()
         self.held = []
+        self.aired = []
         self.insights = {}
         self.statuses = {}
         self.notes = []

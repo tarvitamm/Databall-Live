@@ -93,3 +93,14 @@ def test_injected_errors_are_rejected_live(match):
     asyncio.run(play(session, 1200))
     assert session.rejections > 0
     assert any(m["kind"] == "note" and m["note"] == "rejected" for m in console.out)
+
+
+def test_switching_view_replays_what_already_aired(match):
+    session, viewer, _ = session_with_audience(match)
+    asyncio.run(play(session, 900))
+    late = Socket()
+    analyst = Viewer(ViewerProfile(viewer="late", mode="analyst", lang="es", density="high"))
+    asyncio.run(session.send_history(late, analyst))
+    history = [m for m in late.out if m["kind"] == "history"][0]["packets"]
+    assert history
+    assert all(p["persona"] == "analyst" and p["lang"] == "es" for p in history)
