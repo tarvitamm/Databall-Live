@@ -78,7 +78,8 @@ class Scheduler:
                 data={"type": ins.type, "key": by_id[v.insight].key, "teams": ins.entities.get("teams", []),
                       "players": ins.entities.get("players", []), "significance": ins.significance,
                       "confidence": ins.confidence, "signals": ins.signals, "source": v.source,
-                      "why": {"claim": ins.claim, "mechanism": ins.mechanism, "consequence": ins.consequence,
+                      "why": {**by_id[v.insight].why.get(v.lang, {"claim": ins.claim, "mechanism": ins.mechanism,
+                                                                       "consequence": ins.consequence, "lang": "en"}),
                               "analyst": ins.model.analyst, "storyteller": ins.model.storyteller}},
                 viz={"kind": VIZ.get(ins.type, "none"), "window": list(ins.evidence.window or (ins.t - 10, ins.t))},
                 fallback=(v.insight, v.persona, v.lang) in fallback))

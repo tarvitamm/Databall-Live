@@ -32,6 +32,7 @@ class Draft:
     seen: set[float] = field(default_factory=set)
     seen_text: str = ""
     tools: list[str] = field(default_factory=list)
+    why: dict[str, dict] = field(default_factory=dict)
 
 
 class Builder:

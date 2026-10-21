@@ -1,4 +1,4 @@
-# Blindside
+# Databall Live
 
 Explainable match intelligence for the football the camera doesn't show: off-the-ball runs, pressing
 and space, linked to the passes and shots they cause. Built for the Microsoft x Premier League
@@ -8,11 +8,11 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 
 | Part | State |
 | --- | --- |
-| Data contracts (`src/blindside/contracts.py`) | Done: events, tracking, metadata, hidden truth, patterns, insights, overlay packets, viewer profiles |
-| Simulator v1 (`src/blindside/sim`) | Done: 22 agents at 10 Hz, passing, shots, offside, pressing, box marking, clearances, off-ball runs with decoy intent and follow/hold marking choices, fatigue, scripted scenarios |
-| Stats engine (`src/blindside/stats`) | Done for v1: event-based possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing shifts, counter-pressing, recovery runs, line movements, gaps between the lines, overloads, pass difficulty and xG models, speed and distance triggers, fatigue, shot chains, control vs chaos, momentum swings, evaluation against hidden truth |
-| Insight crew (`src/blindside/insights`) | Done as an Agent Framework workflow on Microsoft Foundry: tactical analyst and player lens explain each moment with read-only stats tools, storyteller writes every persona and language, verifier checks every explanation and line, recapper writes half-time and full-time panels, producer schedules what airs. Every model step has a deadline and a template fallback |
-| Live broadcast server (`src/blindside/live`) | Done: one broadcast per match and room on a shared clock, the crew running beside it, REST API and WebSockets |
+| Data contracts (`src/databall_live/contracts.py`) | Done: events, tracking, metadata, hidden truth, patterns, insights, overlay packets, viewer profiles |
+| Simulator v1 (`src/databall_live/sim`) | Done: 22 agents at 10 Hz, passing, shots, offside, pressing, box marking, clearances, off-ball runs with decoy intent and follow/hold marking choices, fatigue, scripted scenarios |
+| Stats engine (`src/databall_live/stats`) | Done for v1: event-based possession, kinematics, team shape, pitch control, off-ball runs with follower, dragging and decoy detection, pressing shifts, counter-pressing, recovery runs, line movements, gaps between the lines, overloads, pass difficulty and xG models, speed and distance triggers, fatigue, shot chains, control vs chaos, momentum swings, evaluation against hidden truth |
+| Insight crew (`src/databall_live/insights`) | Done as an Agent Framework workflow on Microsoft Foundry: tactical analyst and player lens explain each moment with read-only stats tools, storyteller writes every persona and language, verifier checks every explanation and line, recapper writes half-time and full-time panels, producer schedules what airs. Every model step has a deadline and a template fallback |
+| Live broadcast server (`src/databall_live/live`) | Done: one broadcast per match and room on a shared clock, the crew running beside it, REST API and WebSockets |
 | App (`web`) | Done: one screen with Fan, Analyst, Player focus and Producer views in English, Spanish and Estonian, plus a clean overlay for OBS or vMix |
 | Azure deployment, tracing and evaluations | Next |
 
@@ -20,7 +20,7 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 
 ```bash
 uv sync
-uv run blindside-sim --seed 58 --home HAR --away RED --scenario the_press --out data/matches/m_0058
+uv run databall-sim --seed 58 --home HAR --away RED --scenario the_press --out data/matches/m_0058
 ```
 
 Writes `events.jsonl`, `tracking.jsonl` (10 Hz), `metadata.json` and `truth.json` (hidden tactics, run
@@ -48,14 +48,14 @@ substitutions yet.
 ## Analyse a match
 
 ```bash
-uv run python -m blindside.sim.batch --first-seed 100 --count 12 --scenarios free,the_press,the_decoy,the_fade
-uv run blindside-analyse data/league/m_0102 --eval
-uv run python -m blindside.stats.evaluate data/league
+uv run python -m databall_live.sim.batch --first-seed 100 --count 12 --scenarios free,the_press,the_decoy,the_fade
+uv run databall-analyse data/league/m_0102 --eval
+uv run python -m databall_live.stats.evaluate data/league
 ```
 
-`blindside-analyse` writes `patterns.jsonl`, `metrics.json` and `summary.json` (team and player numbers) next to the
+`databall-analyse` writes `patterns.jsonl`, `metrics.json` and `summary.json` (team and player numbers) next to the
 match. Retrain the pass and xG models with
-`uv run python -m blindside.stats.train data/league`. The evaluation reads `truth.json` and is the only code
+`uv run python -m databall_live.stats.train data/league`. The evaluation reads `truth.json` and is the only code
 that does.
 
 ## The season so far
@@ -64,8 +64,8 @@ Insights compare every match with the ones played before it. The earlier rounds 
 only their summaries are kept:
 
 ```bash
-uv run python -m blindside.sim.batch --first-seed 1 --count 24 --scenarios free,the_press,free,the_decoy,free,the_fade --out data/season
-ls -d data/season/m_* | xargs -P 6 -I{} sh -c 'uv run blindside-analyse {} && rm {}/tracking.jsonl'
+uv run python -m databall_live.sim.batch --first-seed 1 --count 24 --scenarios free,the_press,free,the_decoy,free,the_fade --out data/season
+ls -d data/season/m_* | xargs -P 6 -I{} sh -c 'uv run databall-analyse {} && rm {}/tracking.jsonl'
 ```
 
 For a league match, the season is every summary in `data/season` and every earlier match in its own league. A live
@@ -122,7 +122,7 @@ flowchart TD
 ```bash
 cp .env.example .env    # then set your Foundry project endpoint
 az login
-uv run blindside-insights data/league/m_0106 --model
+uv run databall-insights data/league/m_0106 --model
 ```
 
 Writes `insights.jsonl` (each insight with its explanation and the tools the agent called), `variants.jsonl` (every
@@ -141,13 +141,13 @@ caught by the verifier and rewritten, 19 template fallbacks, 1,191 model calls, 
 ## Run the app
 
 ```bash
-uv run blindside-serve --data data/league
+uv run databall-serve --data data/league
 npm --prefix web install
 npm --prefix web run dev
 ```
 
 Open http://localhost:5173, pick a match and press play. The screen is split in two. **Input** on the left is the
-raw tracking feed on a 2D pitch. **Output** on the right is what Blindside makes of it for the chosen view, all on one
+raw tracking feed on a 2D pitch. **Output** on the right is what Databall Live makes of it for the chosen view, all on one
 broadcast clock:
 
 - **Fan**: the fan web app. Insights pop up as they happen, with their own look for goals, records, standouts and the
@@ -170,7 +170,7 @@ or dark setting and has a switch for both.
 
 Each browser gets its own broadcast room, so viewers do not share a clock unless they share a `room` in the URL.
 `?view=overlay&room=<room>` is a transparent 1920 x 1080 overlay for OBS or vMix. For a single server, build the app
-with `npm --prefix web run build` and `blindside-serve` serves `web/dist` itself on port 8000.
+with `npm --prefix web run build` and `databall-serve` serves `web/dist` itself on port 8000.
 
 ## Detection quality (12 simulated matches)
 

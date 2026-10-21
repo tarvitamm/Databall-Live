@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ..contracts import MatchMetadata
 from .analyst import Draft
 from .templates import DRIVER, LEAD, METRIC, OUTCOME, PASSES, SERVED, STATE, TAGS, T
-from .text import POSITION, SIDE, num, surname
+from .text import LANGS, POSITION, SIDE, num, surname
 
 PERSONAS = ("analyst", "fan", "player_focus")
 PLAYER_KEYS = {"runner", "defender", "benef", "shooter", "decoy", "player", "focus", "star"}
@@ -96,10 +96,19 @@ def render_all(d: Draft, names: Names, langs: tuple[str, ...]) -> list[Variant]:
     return out
 
 
+def describe_lang(d: Draft, lang: str, names: Names) -> None:
+    """A template explanation in one language, built from the same verified templates as the lines."""
+    fan = render(d, "fan", lang, names)
+    analyst = render(d, "analyst", lang, names)
+    d.why[lang] = {"claim": fan.headline if fan else "", "mechanism": analyst.body if analyst else "",
+                   "consequence": fan.body if fan else "", "lang": lang, "source": "template"}
+
+
 def describe(d: Draft, names: Names) -> None:
-    """Fill the insight's canonical English claim, mechanism and consequence."""
-    fan = render(d, "fan", "en", names)
-    analyst = render(d, "analyst", "en", names)
-    d.insight.claim = fan.headline if fan else ""
-    d.insight.mechanism = analyst.body if analyst else ""
-    d.insight.consequence = fan.body if fan else ""
+    """Template explanations in every language; English is also the insight's canonical claim."""
+    for lang in LANGS:
+        describe_lang(d, lang, names)
+    en = d.why["en"]
+    d.insight.claim = en["claim"]
+    d.insight.mechanism = en["mechanism"]
+    d.insight.consequence = en["consequence"]

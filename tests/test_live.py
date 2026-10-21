@@ -3,9 +3,9 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from blindside.insights.pipeline import run, save
-from blindside.live import server
-from blindside.sim.cli import simulate
+from databall_live.insights.pipeline import run, save
+from databall_live.live import server
+from databall_live.sim.cli import simulate
 
 
 @pytest.fixture(scope="module")

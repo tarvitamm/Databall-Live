@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from blindside.contracts import Event, TrackingFrame, Truth
-from blindside.sim import CLUBS, MatchEngine
-from blindside.sim.pitch import LENGTH, WIDTH, attack_sign, to_team_frame, xg_true
+from databall_live.contracts import Event, TrackingFrame, Truth
+from databall_live.sim import CLUBS, MatchEngine
+from databall_live.sim.pitch import LENGTH, WIDTH, attack_sign, to_team_frame, xg_true
 
 
 def play(seed: int = 3, scenario: str = "free", half_minutes: float = 4.0):

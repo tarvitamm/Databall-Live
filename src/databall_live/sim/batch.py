@@ -1,6 +1,6 @@
 """Simulate many matches in parallel for training data, evaluation and the published dataset.
 
-    uv run python -m blindside.sim.batch --first-seed 100 --count 12 --out data/league
+    uv run python -m databall_live.sim.batch --first-seed 100 --count 12 --out data/league
 """
 
 from __future__ import annotations

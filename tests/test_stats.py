@@ -3,11 +3,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from blindside.contracts import Pattern
-from blindside.sim.cli import simulate
-from blindside.sim.pitch import attack_sign
-from blindside.stats.analyse import analyse
-from blindside.stats.pressing import PressWindow, _call
+from databall_live.contracts import Pattern
+from databall_live.sim.cli import simulate
+from databall_live.sim.pitch import attack_sign
+from databall_live.stats.analyse import analyse
+from databall_live.stats.pressing import PressWindow, _call
 
 
 @pytest.fixture(scope="module")

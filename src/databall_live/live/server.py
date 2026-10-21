@@ -1,6 +1,6 @@
 """Replay server: streams a match on its own clock with each viewer's overlays, plus the data the app asks for.
 
-    uv run blindside-serve --data data/league
+    uv run databall-serve --data data/league
 """
 
 from __future__ import annotations
@@ -21,13 +21,14 @@ from ..stats.kinematics import count_sprints
 from ..stats.season import Season
 from .session import TRANSPORT, Sessions
 from .store import Bundle, MatchStore, frame_message, match_state, state_message
+from .talk import talking_points as season_talk
 from .viewer import Viewer
 
 RUN_TYPES = {"run_in_behind", "checking_run", "overlap_run", "forward_run"}
 
-app = FastAPI(title="Blindside")
+app = FastAPI(title="Databall Live")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-store = MatchStore(Path(os.environ.get("BLINDSIDE_DATA", "data/league")))
+store = MatchStore(Path(os.environ.get("DATABALL_DATA", "data/league")))
 sessions = Sessions(store)
 seasons: dict[str, Season] = {}
 SEASON_PLAYER = ("distance_km", "sprints", "top_speed_kmh", "decoy_runs", "pressures", "shots")
@@ -123,44 +124,10 @@ def _player_season(s: Season, pid: str) -> dict | None:
 
 
 @app.get("/api/matches/{match_id}/talking-points")
-def talking_points(match_id: str) -> list[str]:
+def talking_points(match_id: str, lang: str = "en") -> list[str]:
     """Season facts for commentary, ready before kick-off."""
     b = _bundle(match_id)
-    s = _season(b)
-    md = b.md
-    home, away = md.codes
-    name = {t.code: t.name for t in (md.meta.home, md.meta.away)}
-    player = {p.id: p.name for t in (md.meta.home, md.meta.away) for p in t.lineup}
-    out = []
-    met = s.last_meeting(home, away)
-    if met:
-        out.append(f"Last meeting: {name[home]} {met['score'][home]}-{met['score'][away]} {name[away]}.")
-    if s.games(home) and s.games(away):
-        out.append(f"Form, last five: {name[home]} {s.form(home)}, {name[away]} {s.form(away)}.")
-    for code in (home, away):
-        rank = s.team_rank(code, "pressures_per_min")
-        if rank and rank[0] == 1:
-            usual = round(s.team_avg(code, "pressures_per_min") or 0.0, 1)
-            out.append(f"{name[code]} press {usual} times a minute on average, the most in the league.")
-        xg = s.team_avg(code, "xg")
-        if xg is not None:
-            out.append(f"{name[code]} create {xg} xG a game this season.")
-    on_pitch = set(md.ids)
-    for metric, label in (("decoy_runs", "decoy runs"), ("goals", "goals")):
-        leaders = [(pid, v) for pid, v in s.leaders(metric) if pid in on_pitch and v > 0][:2]
-        if leaders:
-            text = ", ".join(f"{player.get(pid, pid)} {int(v)}" for pid, v in leaders)
-            table = s.leaders(metric)
-            alone = table[0][0] == leaders[0][0] and (len(table) < 2 or table[0][1] > table[1][1])
-            lead = f" {player.get(leaders[0][0], leaders[0][0])} leads the league." if alone else ""
-            out.append(f"Most {label} this season on the pitch: {text}.{lead}")
-    fastest = sorted(((s.player_best(pid, "top_speed_kmh") or 0.0, pid) for pid in on_pitch), reverse=True)[:1]
-    league = s.league_best("top_speed_kmh")
-    for v, pid in fastest:
-        if v:
-            note = " (league best)" if league and league[1] == pid else ""
-            out.append(f"Fastest on the pitch: {player.get(pid, pid)}, {v} km/h this season{note}.")
-    return out
+    return season_talk(b.md, _season(b), lang if lang in ("en", "es", "et") else "en")
 
 
 @app.get("/api/matches/{match_id}/compare")
@@ -299,6 +266,7 @@ async def live_viewer(ws: WebSocket, match_id: str) -> None:
         await ws.send_json(frame_message(session.b, session.k))
         period, t = session.now
         await ws.send_json(state_message(session.b, period, t))
+        await ws.send_json({"kind": "detect", "items": session.recent_detections(), "count": session.detect_k})
         await session.send_history(ws, viewer)
         session.viewers[ws] = viewer
         while True:

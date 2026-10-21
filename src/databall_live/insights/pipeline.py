@@ -1,6 +1,6 @@
 """Run the insight crew over a match and save insights, lines, overlay packets and a crew report.
 
-    uv run blindside-insights data/league/m_0106 [--model] [--unreliable 0.2]
+    uv run databall-insights data/league/m_0106 [--model] [--unreliable 0.2]
 
 With --model the analysts, storyteller and recapper use the Foundry model set in .env, and answers are cached in the
 match folder so a second run costs nothing.
@@ -79,8 +79,8 @@ def save(out: Output, folder: Path) -> None:
     write(out.analysis, folder)
     with (folder / "insights.jsonl").open("w") as f:
         for d in out.drafts:
-            f.write(json.dumps({**d.insight.model_dump(exclude_none=True), "facts": d.facts, "tools": d.tools},
-                               ensure_ascii=False) + "\n")
+            f.write(json.dumps({**d.insight.model_dump(exclude_none=True), "facts": d.facts, "tools": d.tools,
+                                "why": d.why}, ensure_ascii=False) + "\n")
     with (folder / "variants.jsonl").open("w") as f:
         for v in out.variants:
             f.write(json.dumps(asdict(v), ensure_ascii=False) + "\n")

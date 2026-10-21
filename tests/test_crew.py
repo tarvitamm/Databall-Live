@@ -3,13 +3,13 @@ import json
 
 import pytest
 
-from blindside.insights.crew import build_crew, minute_batches, run_match
-from blindside.insights.pipeline import run
-from blindside.insights.storyteller import Names
-from blindside.insights.verifier import verify
-from blindside.sim.cli import simulate
-from blindside.stats.analyse import analyse
-from blindside.stats.season import Season, summarize
+from databall_live.insights.crew import build_crew, minute_batches, run_match
+from databall_live.insights.pipeline import run
+from databall_live.insights.storyteller import Names
+from databall_live.insights.verifier import verify
+from databall_live.sim.cli import simulate
+from databall_live.stats.analyse import analyse
+from databall_live.stats.season import Season, summarize
 
 
 @pytest.fixture(scope="module")

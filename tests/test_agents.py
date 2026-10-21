@@ -5,14 +5,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from blindside.insights.cache import Cache
-from blindside.insights.crew import build_crew, run_match
-from blindside.insights.foundry import Usage
-from blindside.insights.storyteller import Names
-from blindside.insights.tools import MatchTools, ToolLog
-from blindside.insights.verifier import verify_explanation
-from blindside.sim.cli import simulate
-from blindside.stats.analyse import analyse
+from databall_live.insights.cache import Cache
+from databall_live.insights.crew import build_crew, run_match
+from databall_live.insights.foundry import Usage
+from databall_live.insights.storyteller import Names
+from databall_live.insights.tools import MatchTools, ToolLog
+from databall_live.insights.verifier import verify_explanation
+from databall_live.sim.cli import simulate
+from databall_live.stats.analyse import analyse
 
 
 class FakeFoundry:
@@ -44,6 +44,10 @@ class FakeFoundry:
             wanted = json.loads(prompt.split("Write these lines: ", 1)[1].splitlines()[0])
             body = {"lines": [{"lang": w["lang"], "persona": w["persona"], "headline": w["reference_headline"],
                                "body": w["reference_body"]} for w in wanted]}
+            if "Analyst's explanation: " in prompt:
+                why = json.loads(prompt.split("Analyst's explanation: ", 1)[1].splitlines()[0])
+                langs = sorted({w["lang"] for w in wanted} - {"en"})
+                body["why"] = [{"lang": lang, **why} for lang in langs]
         return SimpleNamespace(text=json.dumps(body), value=None, usage_details={})
 
     def report(self) -> dict:
@@ -69,6 +73,7 @@ def test_model_explains_and_writes_with_tools(analysis):
     assert drafts and all(d.insight.model.analyst == "fake-model" for d in drafts)
     assert any("match_state()" in d.tools for d in drafts)
     assert {v.source for v in crew.producer.approved} == {"model"}
+    assert all(d.why["es"]["source"] == "model" for d in drafts)
     assert any(p.slot == "panel" and p.data["source"] == "model" for p in result.packets)
 
 

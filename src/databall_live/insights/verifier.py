@@ -125,3 +125,22 @@ def verify_explanation(d: Draft, names: Names) -> list[str]:
 
 def verify_numbers(text: str, allowed: set[float]) -> list[str]:
     return [f"number {found} is not in the facts" for found in NUMBER.findall(text) if not _supported(found, allowed)]
+
+
+def verify_translation(d: Draft, lang: str, names: Names) -> list[str]:
+    """A translated explanation may only carry numbers and players from the English one and the facts."""
+    why = d.why.get(lang, {})
+    text = f"{why.get('claim', '')} {why.get('mechanism', '')} {why.get('consequence', '')}"
+    en = f"{d.insight.claim} {d.insight.mechanism} {d.insight.consequence}"
+    allowed = _fact_numbers(d) | {_value(x) for x in NUMBER.findall(en)} | WINDOWS
+    reasons = [f"number {x} is not in the explanation" for x in NUMBER.findall(text) if not _supported(x, allowed)]
+    for name in names.player.values():
+        if re.search(rf"\b{re.escape(name)}\b", text) and not re.search(rf"\b{re.escape(name)}\b", en):
+            reasons.append(f"names {name}, who is not in the explanation")
+    limits = (("claim", MAX_CLAIM), ("mechanism", MAX_MECHANISM + 60), ("consequence", MAX_CONSEQUENCE + 40))
+    for label, limit in limits:
+        if not why.get(label, "").strip():
+            reasons.append(f"{label} is empty")
+        elif len(why[label]) > limit:
+            reasons.append(f"{label} is {len(why[label])} characters")
+    return reasons

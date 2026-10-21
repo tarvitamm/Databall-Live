@@ -1,6 +1,6 @@
 """Fit the pass-completion and xG models on a folder of simulated matches.
 
-    uv run python -m blindside.stats.train data/league
+    uv run python -m databall_live.stats.train data/league
 """
 
 from __future__ import annotations

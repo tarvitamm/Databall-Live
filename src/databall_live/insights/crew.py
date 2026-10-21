@@ -49,10 +49,10 @@ from .explainer import PROMPT_VERSION, Explainer
 from .foundry import Foundry, ModelOff, Switch
 from .producer import TAG_SLOT, Scheduler
 from .recapper import RecapWriter
-from .storyteller import Names, Variant, describe, render_all
+from .storyteller import Names, Variant, describe, describe_lang, render_all
 from .text import LANGS
 from .tools import MatchTools
-from .verifier import verify, verify_explanation
+from .verifier import verify, verify_explanation, verify_translation
 from .writer import ModelWriter
 
 MAX_ATTEMPTS = 3
@@ -361,6 +361,17 @@ class Verifier(Executor):
                     await ctx.yield_output(CrewNote("verifier", "rejected", note))
                     describe(d, self.names)
                     d.insight.model.analyst = "template"
+            for d in lines.drafts:
+                for lang, why in list(d.why.items()):
+                    if lang == "en" or why.get("source") == "template":
+                        continue
+                    reasons = verify_translation(d, lang, self.names)
+                    if reasons:
+                        note = {"insight": d.insight.id, "target": "explanation", "lang": lang, "attempt": 1,
+                                "reasons": reasons, "body": why.get("mechanism", "")}
+                        self.rejections.append(note)
+                        await ctx.yield_output(CrewNote("verifier", "rejected", note))
+                        describe_lang(d, lang, self.names)
         passed, failed = [], []
         for v in lines.variants:
             reasons = verify(by_id[v.insight], v, self.names)

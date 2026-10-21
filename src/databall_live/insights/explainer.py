@@ -96,6 +96,8 @@ class Explainer:
         d.seen_text = found["seen_text"]
         d.tools = found["tools"]
         d.insight.model.analyst = self.foundry.model
+        d.why["en"] = {"claim": d.insight.claim, "mechanism": d.insight.mechanism,
+                       "consequence": d.insight.consequence, "lang": "en", "source": "model"}
 
     async def explain(self, d: Draft) -> str:
         """Fill the draft's claim, mechanism and consequence. Returns "model" or "cached"; raises to fall back."""

@@ -57,6 +57,8 @@ class LiveSession:
         self.foundry = foundry
         self.cache = cache or Cache()
         self.season = season or Season([])
+        self.detections = sorted(analysis.patterns, key=lambda p: (p.period, p.t_end))
+        self.detect_k = 0
         self.control = Control(model=foundry is not None)
         self.speed = 1.0
         self.playing = False
@@ -191,7 +193,7 @@ class LiveSession:
             payload = {"id": ins.id, "type": ins.type, "period": ins.period, "t": ins.t, "claim": ins.claim,
                        "mechanism": ins.mechanism, "consequence": ins.consequence, "signals": ins.signals,
                        "confidence": ins.confidence, "significance": ins.significance, "entities": ins.entities,
-                       "model": ins.model.model_dump(), "tools": d.tools, "lines": lines}
+                       "model": ins.model.model_dump(), "tools": d.tools, "why": d.why, "lines": lines}
             self.insights[ins.id] = payload
             if not silent:
                 await self.to_consoles({"kind": "insight", **payload, "status": self.statuses.get(ins.id, "queued")})
@@ -222,6 +224,26 @@ class LiveSession:
         self.calls.append(((prediction.period, prediction.opens), prediction.prompt))
         self.calls.append(((prediction.period, prediction.settled), prediction.result))
         self.calls.sort(key=lambda c: c[0])
+
+    @staticmethod
+    def _detection(p) -> dict:
+        return {"id": p.id, "type": p.type, "actor": p.actor, "team": p.team, "period": p.period,
+                "t": round(p.t_end, 1)}
+
+    def recent_detections(self, n: int = 6) -> list[dict]:
+        return [self._detection(p) for p in self.detections[max(0, self.detect_k - n):self.detect_k]]
+
+    async def _detect(self) -> None:
+        """Stream what the detectors see as the match clock passes it."""
+        fresh = []
+        while self.detect_k < len(self.detections):
+            p = self.detections[self.detect_k]
+            if not _before((p.period, p.t_end), self.now):
+                break
+            fresh.append(self._detection(p))
+            self.detect_k += 1
+        if fresh:
+            await self.to_viewers({"kind": "detect", "items": fresh[-6:], "count": self.detect_k})
 
     async def _predictions(self) -> None:
         period, t = self.now
@@ -297,6 +319,7 @@ class LiveSession:
                 await self.to_consoles(frame)
             await self._release()
             await self._predictions()
+            await self._detect()
             if self.k % (5 * md.hz) == 0:
                 period, t = self.now
                 await self._send(list(self.viewers) + list(self.consoles), state_message(self.b, period, t))
@@ -356,6 +379,8 @@ class LiveSession:
         if running:
             self.crew_task = asyncio.create_task(self.crew_loop())
         await self.to_viewers({"kind": "clear"})
+        self.detect_k = sum(1 for p in self.detections if _before((p.period, p.t_end), self.now))
+        await self.to_viewers({"kind": "detect", "items": self.recent_detections(), "count": self.detect_k})
         period, t = self.now
         await self._send(list(self.viewers) + list(self.consoles), frame_message(self.b, self.k))
         await self._send(list(self.viewers) + list(self.consoles), state_message(self.b, period, t))

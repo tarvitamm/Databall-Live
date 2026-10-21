@@ -42,6 +42,8 @@ Rules:
 - Headline at most {MAX_HEADLINE - 10} characters. Body at most {MAX_BODY - 30} characters, one or two short sentences.
   Count the characters: longer lines are rejected.
 - Write natively in each language, as a broadcaster from that country would. No translationese.
+- Also put the analyst's explanation (claim, mechanism, consequence) into every requested language other than English
+  under "why": the same facts and numbers, natural football language, decimal commas where the language uses them.
 - Never use dashes as punctuation. No emojis, no hashtags.
 Return JSON only."""
 
@@ -53,8 +55,16 @@ class Line(BaseModel):
     body: str
 
 
+class Why(BaseModel):
+    lang: str
+    claim: str
+    mechanism: str
+    consequence: str
+
+
 class Lines(BaseModel):
     lines: list[Line]
+    why: list[Why] = []
 
 
 class ModelWriter:
@@ -71,8 +81,9 @@ class ModelWriter:
         facts = {lang: localize(d.facts, lang, self.names) for lang in langs}
         refs = [{"lang": v.lang, "persona": v.persona, "style": PERSONA_STYLE[v.persona],
                  "reference_headline": v.headline, "reference_body": v.body} for v in wanted]
+        why = {"claim": d.insight.claim, "mechanism": d.insight.mechanism, "consequence": d.insight.consequence}
         parts = [f"Insight type: {d.insight.type}.",
-                 f"Analyst's explanation: {d.insight.mechanism} {d.insight.consequence}",
+                 f"Analyst's explanation: {json.dumps(why, ensure_ascii=False)}",
                  f"Facts per language: {json.dumps(facts, ensure_ascii=False)}",
                  f"Write these lines: {json.dumps(refs, ensure_ascii=False)}"]
         if feedback:
@@ -93,9 +104,15 @@ class ModelWriter:
             raise ModelOff()
         else:
             response = await self.foundry.run(self.agent, self._prompt(d, wanted, feedback), self.timeout_s)
-            found = {"lines": [x.model_dump() for x in parse(response, Lines).lines]}
+            parsed = parse(response, Lines)
+            found = {"lines": [x.model_dump() for x in parsed.lines], "why": [x.model_dump() for x in parsed.why]}
             self.cache.put(key, found)
             source = "model"
+        langs = {v.lang for v in wanted} - {"en"}
+        for why in found.get("why", []):
+            if why["lang"] in langs and not feedback:
+                d.why[why["lang"]] = {"claim": clean(why["claim"]), "mechanism": clean(why["mechanism"]),
+                                      "consequence": clean(why["consequence"]), "lang": why["lang"], "source": source}
         by_key = {(x["lang"], x["persona"]): x for x in found["lines"]}
         out = []
         for ref in wanted:

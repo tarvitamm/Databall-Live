@@ -1,5 +1,5 @@
 [project]
-name = "blindside"
+name = "databall-live"
 version = "0.1.0"
 description = "Explainable off-the-ball match intelligence from synthetic football data"
 authors = [
@@ -18,10 +18,10 @@ dependencies = [
 ]
 
 [project.scripts]
-blindside-sim = "blindside.sim.cli:main"
-blindside-analyse = "blindside.stats.analyse:main"
-blindside-insights = "blindside.insights.pipeline:main"
-blindside-serve = "blindside.live.server:main"
+databall-sim = "databall_live.sim.cli:main"
+databall-analyse = "databall_live.stats.analyse:main"
+databall-insights = "databall_live.insights.pipeline:main"
+databall-serve = "databall_live.live.server:main"
 
 [dependency-groups]
 dev = [
@@ -45,4 +45,4 @@ select = ["E", "F", "I", "B", "UP"]
 testpaths = ["tests"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/blindside/insights/templates.py" = ["E501"]
+"src/databall_live/insights/templates.py" = ["E501"]

@@ -1,6 +1,6 @@
 """Simulate one match and write events, tracking, metadata and hidden truth.
 
-    uv run blindside-sim --seed 7 --home HAR --away RED --scenario the_press --out data/matches/m_0007
+    uv run databall-sim --seed 7 --home HAR --away RED --scenario the_press --out data/matches/m_0007
 """
 
 from __future__ import annotations

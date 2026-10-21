@@ -2,12 +2,12 @@ from dataclasses import replace
 
 import pytest
 
-from blindside.contracts import OverlayPacket
-from blindside.insights.pipeline import run
-from blindside.insights.storyteller import Names, render
-from blindside.insights.text import LANGS
-from blindside.insights.verifier import verify
-from blindside.sim.cli import simulate
+from databall_live.contracts import OverlayPacket
+from databall_live.insights.pipeline import run
+from databall_live.insights.storyteller import Names, render
+from databall_live.insights.text import LANGS
+from databall_live.insights.verifier import verify
+from databall_live.sim.cli import simulate
 
 
 @pytest.fixture(scope="module")
@@ -57,10 +57,10 @@ def test_verifier_catches_wrong_numbers_and_names(output):
 
 
 def test_goal_lines_must_match_the_score():
-    from blindside.contracts import Evidence, Insight
-    from blindside.insights.analyst import Draft
-    from blindside.insights.storyteller import Variant
-    from blindside.insights.verifier import verify
+    from databall_live.contracts import Evidence, Insight
+    from databall_live.insights.analyst import Draft
+    from databall_live.insights.storyteller import Variant
+    from databall_live.insights.verifier import verify
 
     class Names:
         player = {"HAR_9": "Diallo"}

@@ -1,6 +1,6 @@
 """Run the stats engine over a stored match and write its patterns, metrics and match state.
 
-    uv run blindside-analyse data/league/m_0101 [--eval]
+    uv run databall-analyse data/league/m_0101 [--eval]
 """
 
 from __future__ import annotations

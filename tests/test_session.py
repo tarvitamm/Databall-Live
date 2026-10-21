@@ -2,14 +2,14 @@ import asyncio
 
 import pytest
 
-from blindside.contracts import ViewerProfile
-from blindside.insights.pipeline import run, save
-from blindside.live.predictions import Predictor
-from blindside.live.session import LiveSession
-from blindside.live.store import MatchStore
-from blindside.live.viewer import Viewer
-from blindside.sim.cli import simulate
-from blindside.stats.analyse import analyse
+from databall_live.contracts import ViewerProfile
+from databall_live.insights.pipeline import run, save
+from databall_live.live.predictions import Predictor
+from databall_live.live.session import LiveSession
+from databall_live.live.store import MatchStore
+from databall_live.live.viewer import Viewer
+from databall_live.sim.cli import simulate
+from databall_live.stats.analyse import analyse
 
 
 class Socket:
