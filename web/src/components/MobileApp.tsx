@@ -7,7 +7,8 @@ import type { Broadcast } from '../useBroadcast'
 import { badgeFor } from '../badges'
 import { Badge, CallsList, PredictionPopup, ResultPopup, ScoreChip } from './Engage'
 import { CloseIcon, Mark, ReplayIcon, ShareIcon } from './Icons'
-import { MiniReplay, ShareSheet } from './Moments'
+import { ShareSheet } from './Moments'
+import { Scene } from './Scene'
 
 const POPUP_MS = 8000
 
@@ -81,13 +82,14 @@ interface CardProps {
   match: MatchDetail
   maps: PitchMaps
   s: Strings
+  lang: Lang
   open: boolean
   onReplay: () => void
   onShare: () => void
 }
 
-function FeedCard({ p, match, maps, s, open, onReplay, onShare }: CardProps) {
-  const replayable = Boolean(p.viz && p.data.players?.length)
+function FeedCard({ p, match, maps, s, lang, open, onReplay, onShare }: CardProps) {
+  const replayable = Boolean(p.viz)
   return (
     <article className={`app-card ${side(match, p)}`}>
       <div className="app-card-head">
@@ -97,7 +99,7 @@ function FeedCard({ p, match, maps, s, open, onReplay, onShare }: CardProps) {
       </div>
       <h4>{p.text.headline}</h4>
       {p.text.body && <p>{p.text.body}</p>}
-      {open && <MiniReplay match={match} packet={p} maps={maps} />}
+      {open && <Scene match={match} packet={p} maps={maps} s={s} lang={lang} compact />}
       <div className="app-actions">
         {replayable && (
           <button onClick={onReplay}>
@@ -114,7 +116,7 @@ function FeedCard({ p, match, maps, s, open, onReplay, onShare }: CardProps) {
   )
 }
 
-function Popup({ p, match, s, onReplay, onShare, onClose }: Omit<CardProps, 'open' | 'maps'> & { onClose: () => void }) {
+function Popup({ p, match, s, onReplay, onShare, onClose }: Omit<CardProps, 'open' | 'maps' | 'lang'> & { onClose: () => void }) {
   return (
     <div className={`popup ${side(match, p)} ${badgeFor(p, s)?.tone ?? ''}`} role="status">
       <div className="popup-head">
@@ -127,7 +129,7 @@ function Popup({ p, match, s, onReplay, onShare, onClose }: Omit<CardProps, 'ope
       <b>{p.text.headline}</b>
       {p.text.body && <p>{p.text.body}</p>}
       <div className="app-actions">
-        {p.viz && p.data.players?.length ? (
+        {p.viz ? (
           <button onClick={onReplay}>
             <ReplayIcon />
             {s.replay}
@@ -196,6 +198,7 @@ function MobileApp({ match, b, maps, s, lang, path, top }: AppProps & { path: st
             match={match}
             maps={maps}
             s={s}
+            lang={lang}
             open={open === p.packet}
             onReplay={() => setOpen(open === p.packet ? null : p.packet)}
             onShare={() => share(p)}

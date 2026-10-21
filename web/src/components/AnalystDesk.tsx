@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { clock, stateLabel, type Strings } from '../i18n'
 import type { PitchMaps } from '../pitchMaps'
-import type { Compare, MatchDetail, Packet } from '../types'
+import type { Compare, Lang, MatchDetail, Packet } from '../types'
 import type { Broadcast } from '../useBroadcast'
 import { Badge } from './Engage'
 import { ReplayIcon } from './Icons'
-import { MiniReplay } from './Moments'
+import { SceneModal } from './Scene'
 
 function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) return <svg className="spark" viewBox="0 0 120 32" />
@@ -24,7 +24,7 @@ function value(v: number | number[]): string {
   return Array.isArray(v) ? `${v[0]} → ${v[1]}` : String(v)
 }
 
-function DeskCard({ p, match, maps, s }: { p: Packet; match: MatchDetail; maps: PitchMaps; s: Strings }) {
+function DeskCard({ p, match, maps, s, lang }: { p: Packet; match: MatchDetail; maps: PitchMaps; s: Strings; lang: Lang }) {
   const [open, setOpen] = useState(false)
   const why = p.data.why
   const team = p.data.teams?.[0]
@@ -71,14 +71,14 @@ function DeskCard({ p, match, maps, s }: { p: Packet; match: MatchDetail; maps: 
           <span className={`src ${byModel ? 'model' : ''}`}>
             {s.writtenBy} {byModel ? writer : s.template}
           </span>
-          {p.viz && p.data.players?.length ? (
-            <button className="pill" onClick={() => setOpen(!open)}>
+          {p.viz ? (
+            <button className="pill" onClick={() => setOpen(true)}>
               <ReplayIcon />
-              {open ? s.hideReplay : s.replay}
+              {s.scene.explain}
             </button>
           ) : null}
         </div>
-        {open && <MiniReplay match={match} packet={p} maps={maps} />}
+        {open && <SceneModal match={match} packet={p} maps={maps} s={s} lang={lang} onClose={() => setOpen(false)} />}
       </div>
     </li>
   )
@@ -165,7 +165,7 @@ function SeasonTable({ match, b, s }: { match: MatchDetail; b: Broadcast; s: Str
   )
 }
 
-export function AnalystDesk({ match, b, maps, s }: { match: MatchDetail; b: Broadcast; maps: PitchMaps; s: Strings }) {
+export function AnalystDesk({ match, b, maps, s, lang }: { match: MatchDetail; b: Broadcast; maps: PitchMaps; s: Strings; lang: Lang }) {
   const st = b.state
   const [home, away] = st?.control ?? [50, 50]
   const share = home + away > 0 ? Math.round((home / (home + away)) * 100) : 50
@@ -202,7 +202,7 @@ export function AnalystDesk({ match, b, maps, s }: { match: MatchDetail; b: Broa
       {b.feed.length === 0 && <p className="empty">{s.noInsights}</p>}
       <ul className="desk-list">
         {b.feed.map((p) => (
-          <DeskCard key={p.packet} p={p} match={match} maps={maps} s={s} />
+          <DeskCard key={p.packet} p={p} match={match} maps={maps} s={s} lang={lang} />
         ))}
       </ul>
     </div>
