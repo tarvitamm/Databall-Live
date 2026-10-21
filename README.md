@@ -124,15 +124,22 @@ npm --prefix web install
 npm --prefix web run dev
 ```
 
-Open http://localhost:5173, pick a match and press play. One broadcast clock drives four views:
+Open http://localhost:5173, pick a match and press play. The screen is split in two. **Input** on the left is the
+raw tracking feed on a 2D pitch. **Output** on the right is what Blindside makes of it for the chosen view, all on one
+broadcast clock:
 
-- **Fan**: the match with graphics for casual viewers, your club's story, momentum and a catch-up
-- **Analyst**: every moment with the analyst's explanation (what happened, why, what it led to), its signals,
-  confidence, who wrote it, and a replay of the evidence
-- **Player focus**: one player's running, off-ball and on-ball numbers, their moments, and lines written about them
-- **Producer**: the rundown with each insight's reasoning and the tools behind it, approve before air, a kill switch,
-  per-type switches, a switch that cuts the model (templates keep airing), injected storyteller errors, and each
-  agent's runs, model calls, cache hits and credit used
+- **Fan**: the fan web app. Insights pop up as they happen, each with an in-app replay of the moment and a repost
+  button that renders a branded image for Instagram, Facebook or X. Follow a club, see who controls the game, catch up
+- **Analyst**: an analyst desk with the headline numbers and every moment explained: what happened, why it happened,
+  what it led to, the evidence behind it, confidence, who wrote it, and a replay
+- **Player focus**: the same app following one player: running, off-ball and on-ball numbers, their moments, and the
+  lines written about them
+- **Producer**: the graphics on air and the control room: approve before air, a kill switch, per-type switches, a
+  switch that cuts the model (templates keep airing), injected storyteller errors, the rundown with each insight's
+  reasoning and tools, and each agent's runs, model calls, cache hits and credit used
+
+Viewers who join late or switch view get the graphics that already aired for them. The app follows the system light
+or dark setting and has a switch for both.
 
 Each browser gets its own broadcast room, so viewers do not share a clock unless they share a `room` in the URL.
 `?view=overlay&room=<room>` is a transparent 1920 x 1080 overlay for OBS or vMix. For a single server, build the app
