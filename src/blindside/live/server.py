@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from ..contracts import ViewerProfile
 from ..stats.kinematics import count_sprints
+from ..stats.season import Season
 from .session import TRANSPORT, Sessions
 from .store import Bundle, MatchStore, frame_message, match_state, state_message
 from .viewer import Viewer
@@ -28,6 +29,14 @@ app = FastAPI(title="Blindside")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 store = MatchStore(Path(os.environ.get("BLINDSIDE_DATA", "data/league")))
 sessions = Sessions(store)
+seasons: dict[str, Season] = {}
+SEASON_PLAYER = ("distance_km", "sprints", "top_speed_kmh", "decoy_runs", "pressures", "shots")
+
+
+def _season(b: Bundle) -> Season:
+    if b.id not in seasons:
+        seasons[b.id] = Season.load(b.folder)
+    return seasons[b.id]
 
 
 def _bundle(match_id: str) -> Bundle:
@@ -98,7 +107,49 @@ def player(match_id: str, player_id: str, period: int = 2, t: float = 1e9) -> di
         "passes_complete": sum(1 for e in passes if e.get("outcome") == "complete"),
         "shots": sum(1 for e in events if e["type"] == "shot"),
         "patterns": [{"id": p["id"], "type": p["type"], "period": p["period"], "t": p["t_start"]} for p in mine][-20:],
+        "season": _player_season(_season(b), player_id),
     }
+
+
+def _player_season(s: Season, pid: str) -> dict | None:
+    games = s.player_games(pid)
+    if not games:
+        return None
+    return {"games": len(games),
+            "avg": {m: s.player_avg(pid, m) for m in SEASON_PLAYER},
+            "best": {m: s.player_best(pid, m) for m in SEASON_PLAYER},
+            "totals": {m: int(s.player_total(pid, m)) for m in ("decoy_runs", "goals")},
+            "rank": {m: list(s.total_rank(pid, m) or (0, 0)) for m in ("decoy_runs", "goals")}}
+
+
+@app.get("/api/matches/{match_id}/compare")
+def compare(match_id: str, period: int, t: float) -> dict:
+    """Each team so far against its season average, scaled to the minutes played for counting stats."""
+    b = _bundle(match_id)
+    s = _season(b)
+    md = b.md
+    p1_start, p1_end = b.period_bounds[1]
+    played = (t - b.period_bounds[2][0] + (p1_end - p1_start) if period == 2 else t - p1_start) / 60.0
+    played = max(played, 1.0)
+    pace = min(played / 90.0, 1.0)
+    bins = [x for x in b.metrics["state"] if _before(x, period, t)]
+    out = {}
+    for k, code in enumerate(md.codes):
+        windows = [w["pressures_per_min"] for w in b.metrics["press"] if w["team"] == k and _before(w, period, t)]
+        mine = [p for p in b.patterns if p.get("team") == code and _before(p, period, t)]
+        shots = [x for x in b.shots if x[2] == code and (x[0] < period or (x[0] == period and x[1] <= t))]
+        now = {"xg": round(sum(x[3] for x in shots), 2), "shots": len(shots),
+               "pressures_per_min": round(sum(windows) / len(windows), 1) if windows else 0.0,
+               "possession_pct": round(100 * sum(x["possession_share"][k] for x in bins) / len(bins)) if bins else 50,
+               "decoy_runs": sum(1 for p in mine if p["type"] == "decoy_run"),
+               "runs": sum(1 for p in mine if p["type"] in RUN_TYPES)}
+        usual = {}
+        for metric in now:
+            avg = s.team_avg(code, metric)
+            rate = metric in ("pressures_per_min", "possession_pct")
+            usual[metric] = None if avg is None else round(avg if rate else avg * pace, 2 if metric == "xg" else 1)
+        out[code] = {"now": now, "season": usual, "games": len(s.games(code)), "form": s.form(code)}
+    return {"minutes": round(played), "teams": out}
 
 
 @app.get("/api/matches/{match_id}/crew")

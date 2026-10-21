@@ -14,9 +14,11 @@ from dataclasses import dataclass, field
 from fastapi import WebSocket
 
 from ..insights.cache import Cache
-from ..insights.crew import Timings, build_crew, minute_batches, run_batch
+from ..insights.crew import MomentBatch, Timings, build_crew, minute_batches, run_batch
 from ..insights.foundry import Foundry, settings
 from ..stats.analyse import Analysis, analyse
+from ..stats.season import Season
+from .predictions import Prediction, Predictor
 from .store import Bundle, MatchStore, frame_message, state_message
 from .viewer import Viewer
 
@@ -25,6 +27,7 @@ APPROVAL_WINDOW_S = 20.0
 LOWER_THIRD_S = 12.0
 CATCH_UP_S = 45.0
 TRANSPORT = {"play", "pause", "speed", "seek"}
+CATCH_UP_GROUP = 18
 MAX_SESSIONS = 8
 MAX_ANALYSES = 4
 
@@ -48,11 +51,12 @@ def _before(a: tuple[int, float], b: tuple[int, float]) -> bool:
 
 class LiveSession:
     def __init__(self, bundle: Bundle, analysis: Analysis, foundry: Foundry | None = None,
-                 cache: Cache | None = None) -> None:
+                 cache: Cache | None = None, season: Season | None = None) -> None:
         self.b = bundle
         self.a = analysis
         self.foundry = foundry
         self.cache = cache or Cache()
+        self.season = season or Season([])
         self.control = Control(model=foundry is not None)
         self.speed = 1.0
         self.playing = False
@@ -71,8 +75,11 @@ class LiveSession:
 
     def _reset_crew(self) -> None:
         self.crew = build_crew(self.a, unreliable=self.control.unreliable, foundry=self.foundry, cache=self.cache,
-                               live=True)
+                               live=True, season=self.season)
         self.crew.switch.mode = "live" if self.control.model else "off"
+        ends = {p: end for p, (_, end) in self.b.period_bounds.items()}
+        self.predictor = Predictor(self.a.md, self.crew.names.team, ends)
+        self.calls: list[tuple[tuple[int, float], dict]] = []
         self.timings = Timings()
         self.batches = minute_batches(self.a, LIVE_STEP_S)
         self.next_batch = 0
@@ -125,7 +132,18 @@ class LiveSession:
             batch = self.batches[self.next_batch]
             if not _before((batch.period, batch.t), until):
                 break
-            self.next_batch += 1
+            group = [batch]
+            while silent and len(group) < CATCH_UP_GROUP and not group[-1].close_period:
+                k = self.next_batch + len(group)
+                if k >= len(self.batches) or self.batches[k].period != batch.period:
+                    break
+                if not _before((self.batches[k].period, self.batches[k].t), until):
+                    break
+                group.append(self.batches[k])
+            self.next_batch += len(group)
+            if len(group) > 1:
+                batch = MomentBatch(group[-1].period, group[-1].t, [p for g in group for p in g.patterns],
+                                    [x for g in group for x in g.state], group[-1].close_period)
             self.crew.switch.mode = self._model_mode((batch.period, batch.t), silent)
             packets, notes = await run_batch(self.crew, batch, self.timings)
             self.cache.save()
@@ -139,22 +157,26 @@ class LiveSession:
                     self.notes = [message, *self.notes][:30]
                     await self.to_consoles(message)
             await self._new_insights(silent)
-            if silent:
-                continue
             period, t = until
             fresh = []
             for p in packets:
                 d = p.model_dump(exclude_none=True)
+                if d["persona"] == "player_focus" and d.get("insight"):
+                    self.focus.add(d["insight"])
+                if silent and _before((d["period"], d["show_at"]), until):
+                    if d["slot"] == "lower_third":
+                        self.aired.append(d)
+                        self.statuses[d["insight"]] = "aired"
+                    continue
                 if d["period"] == period and d["show_at"] < t:
                     length = d["expires_at"] - d["show_at"]
                     d["show_at"] = round(t + 0.5, 1)
                     d["expires_at"] = round(t + 0.5 + length, 1)
-                if d["persona"] == "player_focus" and d.get("insight"):
-                    self.focus.add(d["insight"])
                 fresh.append(d)
             self.queue = self.queue[:self.pointer] + sorted(
                 self.queue[self.pointer:] + fresh, key=lambda d: (d["period"], d["show_at"], d["priority"]))
-            await self.to_consoles({"kind": "crew", **self.crew_report()})
+            if not silent:
+                await self.to_consoles({"kind": "crew", **self.crew_report()})
 
     async def _new_insights(self, silent: bool) -> None:
         history = self.crew.editor.history
@@ -188,8 +210,29 @@ class LiveSession:
         if packet["slot"] == "lower_third":
             self.aired.append(packet)
             await self._status(packet.get("insight"), "aired")
+            if packet["persona"] == "fan" and packet["lang"] == "en":
+                data = packet.get("data", {})
+                team = (data.get("teams") or [""])[0]
+                period, t = self.now
+                self._schedule(self.predictor.after_insight(data.get("type", ""), team, period, t))
 
-    async def send_history(self, ws: WebSocket, viewer: Viewer, limit: int = 15) -> None:
+    def _schedule(self, prediction: Prediction | None) -> None:
+        if prediction is None:
+            return
+        self.calls.append(((prediction.period, prediction.opens), prediction.prompt))
+        self.calls.append(((prediction.period, prediction.settled), prediction.result))
+        self.calls.sort(key=lambda c: c[0])
+
+    async def _predictions(self) -> None:
+        period, t = self.now
+        start = self.b.period_bounds[period][0]
+        self._schedule(self.predictor.periodic(period, t, start))
+        while self.calls and _before(self.calls[0][0], (period, t)):
+            _, message = self.calls.pop(0)
+            if not self.control.killed:
+                await self.to_viewers(message)
+
+    async def send_history(self, ws: WebSocket, viewer: Viewer, limit: int = 80) -> None:
         """Graphics that already aired and suit this viewer, so joining or switching view never starts empty."""
         fitting = [p for p in self.aired if viewer.fits(p, p.get("insight") in self.focus)]
         await self._send([ws], {"kind": "history", "packets": fitting[-limit:]})
@@ -253,6 +296,7 @@ class LiveSession:
             if self.k % 2 == 0:
                 await self.to_consoles(frame)
             await self._release()
+            await self._predictions()
             if self.k % (5 * md.hz) == 0:
                 period, t = self.now
                 await self._send(list(self.viewers) + list(self.consoles), state_message(self.b, period, t))
@@ -311,9 +355,13 @@ class LiveSession:
         await self._run_crew(self.now, silent=True)
         if running:
             self.crew_task = asyncio.create_task(self.crew_loop())
-        for v in self.viewers.values():
-            v.reset()
         await self.to_viewers({"kind": "clear"})
+        period, t = self.now
+        await self._send(list(self.viewers) + list(self.consoles), frame_message(self.b, self.k))
+        await self._send(list(self.viewers) + list(self.consoles), state_message(self.b, period, t))
+        for ws, v in list(self.viewers.items()):
+            v.reset()
+            await self.send_history(ws, v)
         await self.to_consoles(self.snapshot())
 
 
@@ -357,7 +405,8 @@ class Sessions:
                 self._evict()
                 bundle = self.store.get(match_id)
                 cache = self.caches.setdefault(match_id, Cache(bundle.folder / "cache.json"))
-                session = LiveSession(bundle, await self._analysis(bundle), self.model(), cache)
+                season = await asyncio.to_thread(Season.load, bundle.folder)
+                session = LiveSession(bundle, await self._analysis(bundle), self.model(), cache, season)
                 session.task = asyncio.create_task(session.run())
                 self.live[key] = session
             self.live.move_to_end(key)
