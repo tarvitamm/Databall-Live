@@ -2354,3 +2354,30 @@ body:has(.overlay) {
   color: var(--opp);
   font-weight: 500;
 }
+
+.talking {
+  margin-top: 14px;
+  padding: 14px 18px;
+  background: var(--elev);
+  border-left: 3px solid var(--us);
+  border-radius: 0 16px 16px 0;
+}
+
+.talking h4 {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--us);
+  margin-bottom: 6px;
+}
+
+.talking ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.talking li {
+  margin: 4px 0;
+}

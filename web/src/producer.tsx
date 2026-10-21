@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { openSocket, type Stream } from './api'
+import { api, openSocket, type Stream } from './api'
 import { Cards, LowerThird, RecapPanel } from './components/Broadcast'
 import { Pitch } from './components/Pitch'
 import { clock, type Strings } from './i18n'
@@ -264,6 +264,28 @@ function NoteItem({ n }: { n: Note }) {
   )
 }
 
+function TalkingPoints({ match }: { match: MatchDetail }) {
+  const [points, setPoints] = useState<string[]>([])
+  useEffect(() => {
+    let live = true
+    api.talkingPoints(match.id).then((x) => live && setPoints(x)).catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [match.id])
+  if (!points.length) return null
+  return (
+    <section className="talking">
+      <h4>Talking points from the season</h4>
+      <ul>
+        {points.map((p) => (
+          <li key={p}>{p}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 interface ProducerProps {
   match: MatchDetail
   room: string
@@ -346,6 +368,8 @@ export function ProducerDesk({ match, room, b, maps, s }: ProducerProps) {
           })}
         </div>
       </section>
+
+      <TalkingPoints match={match} />
 
       <div className="console-grid">
         <section className="rundown">

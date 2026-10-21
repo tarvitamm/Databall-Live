@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -41,3 +43,20 @@ def test_stream_sends_frames_state_and_packets(client):
                 assert msg["lang"] == "et"
                 assert msg["persona"] in ("analyst", "fan")
     assert kinds.get("frame", 0) > 100 and kinds.get("state", 0) > 0
+
+
+def test_season_comparisons_and_talking_points(client):
+    league = server.store.root
+    summary = json.loads((league / "m_0031" / "summary.json").read_text())
+    for k in range(1, 4):
+        earlier = league.parent / "season" / f"m_000{k}"
+        earlier.mkdir(parents=True, exist_ok=True)
+        (earlier / "summary.json").write_text(json.dumps({**summary, "match": f"m_000{k}"}))
+    server.seasons.clear()
+    compare = client.get("/api/matches/m_0031/compare", params={"period": 1, "t": 200}).json()
+    assert set(compare["teams"]) == {"HAR", "RED"}
+    assert compare["teams"]["HAR"]["games"] == 3 and compare["teams"]["HAR"]["season"]["xg"] is not None
+    player = client.get("/api/matches/m_0031/players/HAR_7", params={"period": 1, "t": 200}).json()
+    assert player["season"]["games"] == 3
+    points = client.get("/api/matches/m_0031/talking-points").json()
+    assert any(p.startswith("Last meeting") for p in points)

@@ -122,6 +122,47 @@ def _player_season(s: Season, pid: str) -> dict | None:
             "rank": {m: list(s.total_rank(pid, m) or (0, 0)) for m in ("decoy_runs", "goals")}}
 
 
+@app.get("/api/matches/{match_id}/talking-points")
+def talking_points(match_id: str) -> list[str]:
+    """Season facts for commentary, ready before kick-off."""
+    b = _bundle(match_id)
+    s = _season(b)
+    md = b.md
+    home, away = md.codes
+    name = {t.code: t.name for t in (md.meta.home, md.meta.away)}
+    player = {p.id: p.name for t in (md.meta.home, md.meta.away) for p in t.lineup}
+    out = []
+    met = s.last_meeting(home, away)
+    if met:
+        out.append(f"Last meeting: {name[home]} {met['score'][home]}-{met['score'][away]} {name[away]}.")
+    if s.games(home) and s.games(away):
+        out.append(f"Form, last five: {name[home]} {s.form(home)}, {name[away]} {s.form(away)}.")
+    for code in (home, away):
+        rank = s.team_rank(code, "pressures_per_min")
+        if rank and rank[0] == 1:
+            usual = round(s.team_avg(code, "pressures_per_min") or 0.0, 1)
+            out.append(f"{name[code]} press {usual} times a minute on average, the most in the league.")
+        xg = s.team_avg(code, "xg")
+        if xg is not None:
+            out.append(f"{name[code]} create {xg} xG a game this season.")
+    on_pitch = set(md.ids)
+    for metric, label in (("decoy_runs", "decoy runs"), ("goals", "goals")):
+        leaders = [(pid, v) for pid, v in s.leaders(metric) if pid in on_pitch and v > 0][:2]
+        if leaders:
+            text = ", ".join(f"{player.get(pid, pid)} {int(v)}" for pid, v in leaders)
+            table = s.leaders(metric)
+            alone = table[0][0] == leaders[0][0] and (len(table) < 2 or table[0][1] > table[1][1])
+            lead = f" {player.get(leaders[0][0], leaders[0][0])} leads the league." if alone else ""
+            out.append(f"Most {label} this season on the pitch: {text}.{lead}")
+    fastest = sorted(((s.player_best(pid, "top_speed_kmh") or 0.0, pid) for pid in on_pitch), reverse=True)[:1]
+    league = s.league_best("top_speed_kmh")
+    for v, pid in fastest:
+        if v:
+            note = " (league best)" if league and league[1] == pid else ""
+            out.append(f"Fastest on the pitch: {player.get(pid, pid)}, {v} km/h this season{note}.")
+    return out
+
+
 @app.get("/api/matches/{match_id}/compare")
 def compare(match_id: str, period: int, t: float) -> dict:
     """Each team so far against its season average, scaled to the minutes played for counting stats."""
