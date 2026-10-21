@@ -30,6 +30,7 @@ from .onball import PassMetrics, ShotMetrics, pass_metrics, score, shot_metrics
 from .possession import Possession, compute_possession
 from .pressing import PressWindow, detect_pressure_shifts, pressing_windows
 from .runs import DetectedRun, detect_runs, measure_space, run_patterns
+from .season import write_summary
 from .shape import Shape, compute_shape
 from .state import StateBin, control_and_chaos, momentum, momentum_swings
 from .triggers import fatigue, triggers
@@ -98,6 +99,7 @@ def write(a: Analysis, folder: Path) -> None:
         "momentum": a.momentum[:: 10].round(4).tolist(),
     }
     (folder / "metrics.json").write_text(json.dumps(metrics, default=float))
+    write_summary(a, folder)
 
 
 def main(argv: list[str] | None = None) -> int:
