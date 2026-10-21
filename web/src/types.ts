@@ -54,6 +54,7 @@ export interface Packet {
   text: { headline: string; body?: string }
   data: {
     type?: string
+    key?: string
     kind?: string
     teams?: string[]
     players?: string[]
@@ -95,6 +96,37 @@ export interface PlayerStats {
   passes_complete: number
   shots: number
   patterns: { id: string; type: string; period: number; t: number }[]
+  season: {
+    games: number
+    avg: Record<string, number>
+    best: Record<string, number>
+    totals: { decoy_runs: number; goals: number }
+    rank: { decoy_runs: [number, number]; goals: [number, number] }
+  } | null
+}
+
+export interface Compare {
+  minutes: number
+  teams: Record<string, { now: Record<string, number>; season: Record<string, number | null>; games: number; form: string }>
+}
+
+export interface Prediction {
+  kind: 'prediction'
+  id: string
+  period: number
+  opens: number
+  closes: number
+  question: Record<string, string>
+  options: { id: string; label: Record<string, string> }[]
+}
+
+export interface PredictionResult {
+  kind: 'prediction_result'
+  id: string
+  period: number
+  t: number
+  answer: string
+  detail: Record<string, string>
 }
 
 export interface CatchUp {
@@ -123,4 +155,4 @@ export interface HistoryMsg {
   packets: Packet[]
 }
 
-export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | { kind: 'end' | 'clear' }
+export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | Prediction | PredictionResult | { kind: 'end' | 'clear' }

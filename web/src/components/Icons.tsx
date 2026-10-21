@@ -87,3 +87,19 @@ export function Mark() {
     </svg>
   )
 }
+
+export function FlameIcon() {
+  return (
+    <svg {...base} width={14} height={14}>
+      <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.2 1.2-3.6 2.3-4.6.2 1.6 1 2.6 2.2 3.1-.4-3 .1-5.6.5-8.5z" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function CheckIcon() {
+  return (
+    <svg {...base}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" strokeWidth={2.4} />
+    </svg>
+  )
+}

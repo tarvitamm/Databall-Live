@@ -69,7 +69,20 @@ export default function App() {
   const [match, setMatch] = useState<MatchDetail | null>(null)
 
   useEffect(() => {
-    api.matches().then(setMatches)
+    let live = true
+    let timer = 0
+    const load = () =>
+      api
+        .matches()
+        .then((m) => live && setMatches(m))
+        .catch(() => {
+          if (live) timer = window.setTimeout(load, 1500)
+        })
+    load()
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
   }, [])
 
   const id = chosen && (matches.length === 0 || matches.some((m) => m.id === chosen)) ? chosen : (matches[0]?.id ?? null)

@@ -4,6 +4,8 @@ import { clock, stateLabel, type Strings } from '../i18n'
 import type { PitchMaps } from '../pitchMaps'
 import type { CatchUp, Lang, MatchDetail, Packet, PlayerStats } from '../types'
 import type { Broadcast } from '../useBroadcast'
+import { badgeFor } from '../badges'
+import { Badge, CallsList, PredictionPopup, ResultPopup, ScoreChip } from './Engage'
 import { CloseIcon, Mark, ReplayIcon, ShareIcon } from './Icons'
 import { MiniReplay, ShareSheet } from './Moments'
 
@@ -47,7 +49,10 @@ function Hero({ match, b, s }: { match: MatchDetail; b: Broadcast; s: Strings })
           <Mark />
           Blindside
         </span>
-        <span className="live-pill">{s.live}</span>
+        <span className="hero-right">
+          <ScoreChip b={b} s={s} />
+          <span className="live-pill">{s.live}</span>
+        </span>
       </div>
       <div className="app-score">
         <b className="us">{match.home.name}</b>
@@ -88,6 +93,7 @@ function FeedCard({ p, match, maps, s, open, onReplay, onShare }: CardProps) {
       <div className="app-card-head">
         <span className="time">{clock(p.period, p.show_at)}</span>
         <span className="kind">{s.kind[p.data.type ?? ''] ?? ''}</span>
+        <Badge p={p} s={s} />
       </div>
       <h4>{p.text.headline}</h4>
       {p.text.body && <p>{p.text.body}</p>}
@@ -110,10 +116,10 @@ function FeedCard({ p, match, maps, s, open, onReplay, onShare }: CardProps) {
 
 function Popup({ p, match, s, onReplay, onShare, onClose }: Omit<CardProps, 'open' | 'maps'> & { onClose: () => void }) {
   return (
-    <div className={`popup ${side(match, p)}`} role="status">
+    <div className={`popup ${side(match, p)} ${badgeFor(p, s)?.tone ?? ''}`} role="status">
       <div className="popup-head">
         <span className="dot" />
-        {s.newInsight} · {clock(p.period, p.show_at)}
+        {badgeFor(p, s)?.label ?? s.newInsight} · {clock(p.period, p.show_at)}
         <button className="icon" onClick={onClose} aria-label={s.close}>
           <CloseIcon />
         </button>
@@ -151,22 +157,36 @@ function MobileApp({ match, b, maps, s, lang, path, top }: AppProps & { path: st
   const now = useTick(500)
   const [open, setOpen] = useState<string | null>(null)
   const [sharing, setSharing] = useState<Packet | null>(null)
-  const [dismissed, setDismissed] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
+  const hide = (id: string) => setDismissed((all) => new Set(all).add(id))
   const latest = b.recap ?? b.feed[0]
-  const popup = latest && latest.packet !== dismissed && now - (latest.received ?? 0) < POPUP_MS ? latest : null
+  const insight = latest && !dismissed.has(latest.packet) && now - (latest.received ?? 0) < POPUP_MS ? latest : null
+  const settled = b.calls.find((c) => c.result && b.picks[c.prompt.id] && now - (c.settledAt ?? 0) < POPUP_MS && !dismissed.has(`r${c.prompt.id}`))
+  const asking = b.calls.find((c) => !c.result && !dismissed.has(`p${c.prompt.id}`) && (!b.picks[c.prompt.id] || now - c.received < 2500))
   const replay = (p: Packet) => {
     setOpen(p.packet)
-    setDismissed(p.packet)
+    hide(p.packet)
   }
   const share = (p: Packet) => {
     setSharing(p)
-    setDismissed(p.packet)
+    hide(p.packet)
+  }
+  let popup: ReactNode = null
+  if (settled) {
+    popup = <ResultPopup key={`r${settled.prompt.id}`} call={settled} b={b} s={s} lang={lang} onClose={() => hide(`r${settled.prompt.id}`)} />
+  } else if (insight && (!asking || (insight.received ?? 0) > asking.received)) {
+    popup = (
+      <Popup key={insight.packet} p={insight} match={match} s={s} onReplay={() => replay(insight)} onShare={() => share(insight)} onClose={() => hide(insight.packet)} />
+    )
+  } else if (asking) {
+    popup = <PredictionPopup key={`p${asking.prompt.id}`} call={asking} b={b} s={s} lang={lang} onClose={() => hide(`p${asking.prompt.id}`)} />
   }
   return (
     <Phone path={path}>
       <Hero match={match} b={b} s={s} />
       <div className="app-body">
         {top}
+        <CallsList b={b} s={s} lang={lang} />
         <h5 className="app-section">{s.yourFeed}</h5>
         {b.feed.length === 0 && !b.recap && <p className="app-empty">{s.noInsights}</p>}
         {[...(b.recap ? [b.recap] : []), ...b.feed].map((p) => (
@@ -182,9 +202,7 @@ function MobileApp({ match, b, maps, s, lang, path, top }: AppProps & { path: st
           />
         ))}
       </div>
-      {popup && (
-        <Popup key={popup.packet} p={popup} match={match} s={s} onReplay={() => replay(popup)} onShare={() => share(popup)} onClose={() => setDismissed(popup.packet)} />
-      )}
+      {popup}
       {sharing && (
         <ShareSheet packet={sharing} match={match} maps={maps} lang={lang} footer={scoreLine(match, b)} s={s} onClose={() => setSharing(null)} />
       )}
@@ -316,6 +334,43 @@ export function PlayerApp({ player, onPlayer, ...props }: AppProps & { player: s
               <span>km/h</span>
             </div>
           </div>
+          {stats.season && (
+            <>
+              <h5 className="app-section">
+                {s.today} · {s.thisSeason} ({stats.season.games} {s.games})
+              </h5>
+              <table className="season-table">
+                <tbody>
+                  {([
+                    ['distance_km', s.distance, stats.distance_km],
+                    ['sprints', s.sprints, stats.sprints],
+                    ['top_speed_kmh', s.topSpeed, stats.top_speed_kmh],
+                    ['decoy_runs', s.decoys, stats.decoy_runs],
+                    ['pressures', s.pressures, stats.pressures],
+                  ] as [string, string, number][]).map(([key, label, today]) => (
+                    <tr key={key}>
+                      <td>{label}</td>
+                      <td className="num today">{today}</td>
+                      <td className="num">
+                        {stats.season!.avg[key]?.toFixed(1)} <small>{s.seasonAvg}</small>
+                      </td>
+                      <td className="num">
+                        {stats.season!.best[key]} <small>{s.seasonBest}</small>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="season-chips">
+                <span>
+                  <em>{stats.season.totals.decoy_runs + stats.decoy_runs}</em> {s.decoys} · #{stats.season.rank.decoy_runs[0]} {s.inLeague}
+                </span>
+                <span>
+                  <em>{stats.season.totals.goals}</em> {s.goals}
+                </span>
+              </div>
+            </>
+          )}
           <dl className="player-stats">
             <div>
               <dt>{s.runs}</dt>

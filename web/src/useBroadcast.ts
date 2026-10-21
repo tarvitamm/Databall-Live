@@ -2,7 +2,34 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, openBroadcast, type Stream } from './api'
 import { MatchClock } from './clock'
 import type { Tag, Trail } from './components/Pitch'
-import type { FrameMsg, HistoryMsg, MatchDetail, Packet, Profile, StateMsg, TransportMsg } from './types'
+import type { FrameMsg, HistoryMsg, MatchDetail, Packet, Prediction, PredictionResult, Profile, StateMsg, TransportMsg } from './types'
+
+export interface Call {
+  prompt: Prediction
+  result?: PredictionResult
+  received: number
+  settledAt?: number
+}
+
+export interface Score {
+  points: number
+  streak: number
+  best: number
+  called: number
+  played: number
+  last?: { id: string; won: boolean; gained: number }
+}
+
+const EMPTY_SCORE: Score = { points: 0, streak: 0, best: 0, called: 0, played: 0 }
+
+function loadScore(): Score {
+  try {
+    const saved = localStorage.getItem('blindside.score')
+    return saved ? { ...EMPTY_SCORE, ...(JSON.parse(saved) as Score), last: undefined } : EMPTY_SCORE
+  } catch {
+    return EMPTY_SCORE
+  }
+}
 
 type Timed<T> = T & { period: number; expires: number }
 
@@ -38,6 +65,22 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
   const [recap, setRecap] = useState<Timed<{ packet: Packet }> | null>(null)
   const [state, setState] = useState<StateMsg | null>(null)
   const [trails, setTrails] = useState<Timed<Trail>[]>([])
+  const [calls, setCalls] = useState<Record<string, Call>>({})
+  const [picks, setPicks] = useState<Record<string, string>>({})
+  const picksRef = useRef(picks)
+  const [score, setScore] = useState<Score>(loadScore)
+
+  useEffect(() => {
+    picksRef.current = picks
+  }, [picks])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('blindside.score', JSON.stringify({ ...score, last: undefined }))
+    } catch {
+      return
+    }
+  }, [score])
 
   useEffect(() => {
     startProfile.current = profile
@@ -107,9 +150,33 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
         })
       } else if (msg.kind === 'state') {
         setState(msg as StateMsg)
+      } else if (msg.kind === 'prediction') {
+        const m = msg as Prediction
+        setCalls((all) => ({ ...all, [m.id]: { prompt: m, received: Date.now() } }))
+      } else if (msg.kind === 'prediction_result') {
+        const m = msg as PredictionResult
+        setCalls((all) => (all[m.id] ? { ...all, [m.id]: { ...all[m.id], result: m, settledAt: Date.now() } } : all))
+        const pick = picksRef.current[m.id]
+        if (pick) {
+          setScore((sc) => {
+            const won = pick === m.answer
+            const streak = won ? sc.streak + 1 : 0
+            const gained = won ? 10 + 5 * (streak - 1) : 0
+            return {
+              points: sc.points + gained,
+              streak,
+              best: Math.max(sc.best, streak),
+              called: sc.called + (won ? 1 : 0),
+              played: sc.played + 1,
+              last: { id: m.id, won, gained },
+            }
+          })
+        }
       } else if (msg.kind === 'clear') {
         clear()
         setFeed([])
+        setCalls({})
+        setPicks({})
       }
     })
     stream.current = s
@@ -139,6 +206,10 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
     recap: recap && showing(recap, now) && recap.packet.lang === profile.lang ? recap.packet : null,
     state,
     trails: trails.filter((x) => showing(x, now)),
+    calls: Object.values(calls).sort((a, b) => b.prompt.period - a.prompt.period || b.prompt.opens - a.prompt.opens),
+    picks,
+    pick: (id: string, option: string) => setPicks((all) => (all[id] ? all : { ...all, [id]: option })),
+    score,
     play: () => control({ action: 'play' }),
     pause: () => control({ action: 'pause' }),
     setSpeed: (value: number) => control({ action: 'speed', value }),

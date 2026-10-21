@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from '../api'
 import { clock, stateLabel, type Strings } from '../i18n'
 import type { PitchMaps } from '../pitchMaps'
-import type { MatchDetail, Packet } from '../types'
+import type { Compare, MatchDetail, Packet } from '../types'
 import type { Broadcast } from '../useBroadcast'
+import { Badge } from './Engage'
 import { ReplayIcon } from './Icons'
 import { MiniReplay } from './Moments'
 
@@ -34,7 +36,9 @@ function DeskCard({ p, match, maps, s }: { p: Packet; match: MatchDetail; maps: 
     <li className={`desk-card ${tone}`}>
       <div className="k">{clock(p.period, p.show_at)}</div>
       <div className="desk-main">
-        <span className="desk-kind">{s.kind[p.data.type ?? ''] ?? p.data.type}</span>
+        <span className="desk-kind">
+          {s.kind[p.data.type ?? ''] ?? p.data.type} <Badge p={p} s={s} />
+        </span>
         <b>{p.text.headline}</b>
         {p.text.body && <p>{p.text.body}</p>}
         {why && (
@@ -80,6 +84,87 @@ function DeskCard({ p, match, maps, s }: { p: Packet; match: MatchDetail; maps: 
   )
 }
 
+const COMPARE = ['xg', 'shots', 'pressures_per_min', 'possession_pct', 'decoy_runs', 'runs']
+
+function useCompare(match: MatchDetail, now: { period: number; t: number }) {
+  const [data, setData] = useState<Compare | null>(null)
+  const t = Math.floor(now.t / 30) * 30
+  useEffect(() => {
+    let live = true
+    api.compare(match.id, now.period, t).then((x) => live && setData(x)).catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [match.id, now.period, t])
+  return data
+}
+
+function Delta({ now, usual }: { now: number; usual: number | null }) {
+  if (usual === null || usual === 0) return null
+  const ratio = now / usual
+  if (ratio > 1.15) return <i className="delta up">▲</i>
+  if (ratio < 0.85) return <i className="delta down">▼</i>
+  return null
+}
+
+function Form({ form }: { form: string }) {
+  return (
+    <span className="form">
+      {form.split('').map((r, i) => (
+        <i key={i} className={`chip ${r}`}>
+          {r}
+        </i>
+      ))}
+    </span>
+  )
+}
+
+function SeasonTable({ match, b, s }: { match: MatchDetail; b: Broadcast; s: Strings }) {
+  const data = useCompare(match, b.now)
+  if (!data) return null
+  const home = data.teams[match.home.code]
+  const away = data.teams[match.away.code]
+  if (!home || !away) return null
+  return (
+    <section className="vs-season">
+      <h3 className="desk-title">{s.againstSeason}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th />
+            <th className="num us">{match.home.name}</th>
+            <th className="num">{s.seasonPace}</th>
+            <th className="num opp">{match.away.name}</th>
+            <th className="num">{s.seasonPace}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {COMPARE.map((m) => (
+            <tr key={m}>
+              <td className="name">{s.cmp[m]}</td>
+              <td className="num">
+                {home.now[m]} <Delta now={home.now[m]} usual={home.season[m]} />
+              </td>
+              <td className="num muted">{home.season[m] ?? '-'}</td>
+              <td className="num">
+                {away.now[m]} <Delta now={away.now[m]} usual={away.season[m]} />
+              </td>
+              <td className="num muted">{away.season[m] ?? '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="desk-meta">
+        <span>{s.form}</span>
+        <span className="us-name">{match.home.name}</span>
+        <Form form={home.form} />
+        <span className="opp-name">{match.away.name}</span>
+        <Form form={away.form} />
+      </div>
+    </section>
+  )
+}
+
 export function AnalystDesk({ match, b, maps, s }: { match: MatchDetail; b: Broadcast; maps: PitchMaps; s: Strings }) {
   const st = b.state
   const [home, away] = st?.control ?? [50, 50]
@@ -112,6 +197,7 @@ export function AnalystDesk({ match, b, maps, s }: { match: MatchDetail; b: Broa
           <div className="l">{stateLabel(st?.label ?? 'balanced', s)}</div>
         </div>
       </div>
+      <SeasonTable match={match} b={b} s={s} />
       <h3 className="desk-title">{s.explained}</h3>
       {b.feed.length === 0 && <p className="empty">{s.noInsights}</p>}
       <ul className="desk-list">
