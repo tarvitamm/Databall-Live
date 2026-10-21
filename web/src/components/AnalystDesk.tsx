@@ -51,7 +51,7 @@ function DeskCard({ p, match, maps, s }: { p: Packet; match: MatchDetail; maps: 
             <dd>{why.consequence}</dd>
           </dl>
         )}
-        {why && s.inEnglish && <p className="desk-note">{s.inEnglish}</p>}
+        {why?.lang === 'en' && s.inEnglish && <p className="desk-note">{s.inEnglish}</p>}
         {p.data.signals && (
           <div className="desk-signals">
             {Object.entries(p.data.signals).map(([k, v]) => (

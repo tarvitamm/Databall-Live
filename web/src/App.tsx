@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from './api'
+import { badgeFor } from './badges'
 import { AnalystDesk } from './components/AnalystDesk'
-import { ScoreBug } from './components/Broadcast'
 import { Mark, PauseIcon, PlayIcon } from './components/Icons'
 import { FanApp, PlayerApp } from './components/MobileApp'
-import { Timeline } from './components/Timeline'
+import { Timeline, type Mark as TimelineMark } from './components/Timeline'
 import { strings, type Strings } from './i18n'
 import { usePitchMaps } from './pitchMaps'
 import { ProducerDesk } from './producer'
@@ -20,7 +20,7 @@ const STAR = 'HAR_7'
 
 function stored(key: string): string | null {
   try {
-    return localStorage.getItem(`blindside.${key}`)
+    return localStorage.getItem(`databall.${key}`)
   } catch {
     return null
   }
@@ -28,7 +28,7 @@ function stored(key: string): string | null {
 
 function store(key: string, value: string): void {
   try {
-    localStorage.setItem(`blindside.${key}`, value)
+    localStorage.setItem(`databall.${key}`, value)
   } catch {
     return
   }
@@ -141,13 +141,20 @@ export default function App() {
   }
 
   const props = { match: current!, b, maps, s, lang }
+  const marks: TimelineMark[] = b.feed.map((p) => {
+    const badge = badgeFor(p, s)?.tone
+    const team = p.data.teams?.[0]
+    return { id: p.packet, period: p.period, t: p.show_at, tone: badge ?? (team === current?.home.code ? 'us' : 'opp') }
+  })
 
   return (
     <div className="app">
       <header className="topline">
         <span className="brand">
-          <Mark />
-          <span className="wordmark">Blindside</span>
+          <Mark size={20} />
+          <span className="wordmark">
+            Databall <b>Live</b>
+          </span>
           <span className="div" aria-hidden />
           <select className="match-select" value={id ?? ''} onChange={(e) => pickMatch(e.target.value)} aria-label={s.pick}>
             {matches.map((m) => (
@@ -181,7 +188,6 @@ export default function App() {
       {current ? (
         <>
           <div className="fbar">
-            <ScoreBug match={current} now={b.now} state={b.state} />
             <button className="play" onClick={b.playing ? b.pause : b.play} aria-label={b.playing ? s.pause : s.play}>
               {b.playing ? <PauseIcon /> : <PlayIcon />}
             </button>
@@ -192,11 +198,12 @@ export default function App() {
                 </button>
               ))}
             </span>
-            <Timeline match={current} now={b.now} onSeek={b.seek} />
+            <Timeline match={current} now={b.now} marks={marks} onSeek={b.seek} />
           </div>
           <main className="io">
             <section className="io-col">
               <div className="io-label">
+                <span className="step">01</span>
                 <h2>{s.input}</h2>
                 <span className="eyebrow">{s.inputSub}</span>
               </div>
@@ -204,6 +211,7 @@ export default function App() {
             </section>
             <section className="io-col">
               <div className="io-label">
+                <span className="step">02</span>
                 <h2>{s.output}</h2>
                 <span className="eyebrow">{outputLabel(view, s)}</span>
               </div>
@@ -217,7 +225,7 @@ export default function App() {
           </main>
         </>
       ) : (
-        <main className="loading">Blindside</main>
+        <main className="loading">Databall Live</main>
       )}
     </div>
   )

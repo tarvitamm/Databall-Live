@@ -47,7 +47,7 @@ function Hero({ match, b, s }: { match: MatchDetail; b: Broadcast; s: Strings })
       <div className="app-top">
         <span className="app-brand">
           <Mark />
-          Blindside
+          Databall Live
         </span>
         <span className="hero-right">
           <ScoreChip b={b} s={s} />
@@ -146,7 +146,7 @@ function Phone({ path, children }: { path: string; children: ReactNode }) {
   return (
     <div className="phone">
       <div className="phone-top">
-        <span className="phone-url">blindside.app/{path}</span>
+        <span className="phone-url">live.databall.eu/{path}</span>
       </div>
       <div className="phone-screen">{children}</div>
     </div>

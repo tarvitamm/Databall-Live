@@ -62,7 +62,7 @@ export interface Packet {
     confidence?: number
     signals?: Record<string, number | number[]>
     source?: string
-    why?: { claim: string; mechanism: string; consequence: string; analyst?: string; storyteller?: string }
+    why?: { claim: string; mechanism: string; consequence: string; lang?: string; analyst?: string; storyteller?: string }
   }
   viz?: { kind: string; window: [number, number] }
   received?: number
@@ -150,9 +150,24 @@ export interface TransportMsg {
   speed: number
 }
 
+export interface Detection {
+  id: string
+  type: string
+  actor: string | null
+  team: string | null
+  period: number
+  t: number
+}
+
+export interface DetectMsg {
+  kind: 'detect'
+  items: Detection[]
+  count: number
+}
+
 export interface HistoryMsg {
   kind: 'history'
   packets: Packet[]
 }
 
-export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | Prediction | PredictionResult | { kind: 'end' | 'clear' }
+export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | DetectMsg | Prediction | PredictionResult | { kind: 'end' | 'clear' }

@@ -1,6 +1,6 @@
-# Blindside web
+# Databall Live web
 
-The fan app and broadcast overlay. It talks to `blindside-serve` through the Vite proxy in development.
+The fan app and broadcast overlay. It talks to `databall-serve` through the Vite proxy in development.
 
 ```bash
 npm install

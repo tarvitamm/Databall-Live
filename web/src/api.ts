@@ -15,7 +15,7 @@ export const api = {
     get<PlayerStats>(`/api/matches/${id}/players/${pid}`, { period, t }),
   catchUp: (id: string, period: number, t: number, lang: string) =>
     get<CatchUp>(`/api/matches/${id}/catchup`, { period, t, lang }),
-  talkingPoints: (id: string) => get<string[]>(`/api/matches/${id}/talking-points`),
+  talkingPoints: (id: string, lang: string) => get<string[]>(`/api/matches/${id}/talking-points`, { lang }),
   compare: (id: string, period: number, t: number) => get<Compare>(`/api/matches/${id}/compare`, { period, t }),
   replay: (id: string, period: number, start: number, end: number) =>
     get<{ frames: FrameMsg[] }>(`/api/matches/${id}/replay`, { period, start, end }),

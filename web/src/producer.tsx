@@ -29,6 +29,7 @@ interface Insight {
   entities: { teams?: string[]; players?: string[] }
   model: { analyst?: string; storyteller?: string; prompt_version?: string }
   tools: string[]
+  why?: Record<string, { claim: string; mechanism: string; consequence: string; lang: string }>
   lines: Record<string, Record<string, Line>>
   status: Status
 }
@@ -67,39 +68,17 @@ interface Note {
   detail: Record<string, unknown>
 }
 
-const TYPES: [string, string][] = [
-  ['chain', 'Chances'],
-  ['decoy_run', 'Decoy runs'],
-  ['pressure_shift', 'Pressing'],
-  ['momentum_swing', 'Momentum'],
-  ['counter_press', 'Counter-press'],
-  ['between_lines_gap', 'Gaps'],
-  ['overload', 'Overloads'],
-  ['fatigue', 'Fatigue'],
-  ['match_state', 'Match state'],
-  ['speed_tag', 'Speed tags'],
+const TYPES = ['chain', 'decoy_run', 'pressure_shift', 'momentum_swing', 'counter_press', 'between_lines_gap', 'overload', 'fatigue', 'match_state', 'speed_tag']
+const AGENTS: [string, boolean][] = [
+  ['moment_router', false],
+  ['tactical_analyst', true],
+  ['player_lens', true],
+  ['editor', false],
+  ['storyteller', true],
+  ['verifier', false],
+  ['recapper', true],
+  ['producer', false],
 ]
-
-const AGENTS: [string, string, boolean][] = [
-  ['moment_router', 'Moment router', false],
-  ['tactical_analyst', 'Tactical analyst', true],
-  ['player_lens', 'Player lens', true],
-  ['editor', 'Editor', false],
-  ['storyteller', 'Storyteller', true],
-  ['verifier', 'Verifier', false],
-  ['recapper', 'Recapper', true],
-  ['producer', 'Producer', false],
-]
-
-const STATUS_LABEL: Record<Status, string> = {
-  queued: 'Queued',
-  awaiting_approval: 'Needs approval',
-  aired: 'On air',
-  rejected: 'Rejected',
-  expired: 'Expired',
-  killed: 'Killed',
-  switched_off: 'Switched off',
-}
 
 const OFF: Control = { mode: 'auto', killed: false, disabled: [], unreliable: 0, model: false }
 
@@ -145,80 +124,94 @@ function useConsole(match: MatchDetail, room: string) {
   return { control, insights, crew, notes, send }
 }
 
-function sourceLabel(source: string | undefined, model: string): string {
+type P = Strings['prod']
+
+function sourceLabel(source: string | undefined, model: string, t: P): string {
   if (source === 'model') return model
-  if (source === 'cached') return `${model}, cached`
-  if (source === 'fallback') return 'template fallback'
-  return 'template'
+  if (source === 'cached') return `${model}, ${t.cachedBy}`
+  if (source === 'fallback') return t.fallback
+  return t.template
 }
 
 function byModel(source: string | undefined): boolean {
   return source === 'model' || source === 'cached'
 }
 
-function InsightCard({ ins, names, onApprove, onReject, supervised, model }: {
+interface CardProps {
   ins: Insight
   names: Record<string, string>
   onApprove: () => void
   onReject: () => void
   supervised: boolean
   model: string
-}) {
+  s: Strings
+  lang: string
+}
+
+function InsightCard({ ins, names, onApprove, onReject, supervised, model, s, lang }: CardProps) {
   const [open, setOpen] = useState(false)
-  const analyst = ins.lines.en?.analyst
+  const t = s.prod
+  const line = ins.lines[lang]?.analyst ?? ins.lines.en?.analyst
+  const why = ins.why?.[lang] ?? { claim: ins.claim, mechanism: ins.mechanism, consequence: ins.consequence, lang: 'en' }
   const decided = ['aired', 'rejected', 'expired', 'killed', 'switched_off'].includes(ins.status)
   const explained = Boolean(ins.model.analyst && ins.model.analyst !== 'template')
   return (
     <article className={`insight-card status-${ins.status}`}>
       <header>
         <span className="feed-time">{clock(ins.period, ins.t)}</span>
-        <span className="type-chip">{ins.type.replace(/_/g, ' ')}</span>
-        <span className={`status-chip ${ins.status}`}>{STATUS_LABEL[ins.status] ?? ins.status}</span>
+        <span className="type-chip">{s.kind[ins.type] ?? ins.type.replace(/_/g, ' ')}</span>
+        <span className={`status-chip ${ins.status}`}>{s.status[ins.status] ?? ins.status}</span>
       </header>
-      <h4>{analyst?.headline ?? ins.claim}</h4>
-      {analyst?.body && <p>{analyst.body}</p>}
+      <h4>{line?.headline ?? why.claim}</h4>
+      {line?.body && <p>{line.body}</p>}
       <p className="reasoning">
-        <b>Why:</b> {ins.mechanism}
+        <b>{t.why}:</b> {why.mechanism}
       </p>
       <div className="meta">
-        <span className={explained ? 'source model' : 'source'}>analyst: {explained ? ins.model.analyst : 'template'}</span>
-        <span className={byModel(analyst?.source) ? 'source model' : 'source'}>lines: {sourceLabel(analyst?.source, model)}</span>
-        <span>confidence {Math.round(ins.confidence * 100)}%</span>
+        <span className={explained ? 'source model' : 'source'}>
+          {t.analyst}: {explained ? ins.model.analyst : t.template}
+        </span>
+        <span className={byModel(line?.source) ? 'source model' : 'source'}>
+          {t.lines}: {sourceLabel(line?.source, model, t)}
+        </span>
+        <span>
+          {t.confidence} {Math.round(ins.confidence * 100)}%
+        </span>
         {ins.entities.players?.length ? <span>{ins.entities.players.map((p) => names[p] ?? p).join(', ')}</span> : null}
       </div>
       {supervised && !decided && (
         <div className="actions">
           <button className="approve" onClick={onApprove}>
-            Approve
+            {t.approve}
           </button>
           <button className="reject" onClick={onReject}>
-            Reject
+            {t.reject}
           </button>
         </div>
       )}
       <button className="link" onClick={() => setOpen(!open)}>
-        {open ? 'Hide details' : 'Reasoning, tools and every language'}
+        {open ? t.hide : t.details}
       </button>
       {open && (
         <div className="details">
           <p>
-            <b>Claim:</b> {ins.claim}
+            <b>{t.claim}:</b> {why.claim}
           </p>
           <p>
-            <b>Effect:</b> {ins.consequence}
+            <b>{t.effect}:</b> {why.consequence}
           </p>
           {ins.tools.length > 0 && (
             <p className="tools">
-              <b>Tools called:</b> {ins.tools.join(' · ')}
+              <b>{t.tools}:</b> {ins.tools.join(' · ')}
             </p>
           )}
-          {Object.entries(ins.lines).map(([lang, personas]) => (
-            <div key={lang} className="lang-block">
-              <strong>{lang.toUpperCase()}</strong>
-              {Object.entries(personas).map(([persona, line]) => (
+          {Object.entries(ins.lines).map(([code, personas]) => (
+            <div key={code} className="lang-block">
+              <strong>{code.toUpperCase()}</strong>
+              {Object.entries(personas).map(([persona, l]) => (
                 <p key={persona}>
-                  <em>{persona.replace('_', ' ')}</em> {line.headline}
-                  {line.body ? ` · ${line.body}` : ''} <span className="muted">({sourceLabel(line.source, model)})</span>
+                  <em>{persona.replace('_', ' ')}</em> {l.headline}
+                  {l.body ? ` · ${l.body}` : ''} <span className="muted">({sourceLabel(l.source, model, t)})</span>
                 </p>
               ))}
             </div>
@@ -229,16 +222,18 @@ function InsightCard({ ins, names, onApprove, onReject, supervised, model }: {
   )
 }
 
-function NoteItem({ n }: { n: Note }) {
+function NoteItem({ n, s }: { n: Note; s: Strings }) {
   const d = n.detail
+  const t = s.prod
   if (n.note === 'rejected') {
-    const what = d.target === 'explanation' ? 'Explanation rejected' : d.target === 'recap' ? 'Recap line rejected' : 'Line rejected'
+    const what = d.target === 'explanation' ? t.explanationRejected : d.target === 'recap' ? t.recapRejected : t.lineRejected
     return (
       <li className="rejected">
         <strong>{what}</strong>
         <span>
           {String(d.insight ?? d.body)}
-          {d.lang ? ` · ${String(d.lang)} · ${String(d.persona)}` : ''} · attempt {String(d.attempt)}
+          {d.lang ? ` · ${String(d.lang)}` : ''}
+          {d.persona ? ` · ${String(d.persona)}` : ''} · {t.attempt} {String(d.attempt)}
         </span>
         <span className="muted">{(d.reasons as string[]).join('; ')}</span>
         {d.target !== 'recap' && <q>{String(d.body)}</q>}
@@ -248,10 +243,10 @@ function NoteItem({ n }: { n: Note }) {
   if (n.note === 'fallback') {
     return (
       <li className="fallback">
-        <strong>Template fallback</strong>
+        <strong>{t.templateFallback}</strong>
         <span>
-          {n.executor.replace('_', ' ')}
-          {d.type ? ` · ${String(d.type).replace(/_/g, ' ')}` : ''}
+          {s.agents[n.executor] ?? n.executor}
+          {d.type ? ` · ${s.kind[String(d.type)] ?? String(d.type).replace(/_/g, ' ')}` : ''}
           {d.why ? ` · ${String(d.why)}` : ''}
         </span>
       </li>
@@ -259,26 +254,26 @@ function NoteItem({ n }: { n: Note }) {
   }
   return (
     <li>
-      <strong>Dropped repeat</strong>
+      <strong>{t.dropped}</strong>
     </li>
   )
 }
 
-function TalkingPoints({ match }: { match: MatchDetail }) {
-  const [points, setPoints] = useState<string[]>([])
+function TalkingPoints({ match, lang, title }: { match: MatchDetail; lang: string; title: string }) {
+  const [points, setPoints] = useState<{ lang: string; items: string[] }>({ lang: '', items: [] })
   useEffect(() => {
     let live = true
-    api.talkingPoints(match.id).then((x) => live && setPoints(x)).catch(() => {})
+    api.talkingPoints(match.id, lang).then((items) => live && setPoints({ lang, items })).catch(() => {})
     return () => {
       live = false
     }
-  }, [match.id])
-  if (!points.length) return null
+  }, [match.id, lang])
+  if (!points.items.length) return null
   return (
     <section className="talking">
-      <h4>Talking points from the season</h4>
+      <h4>{title}</h4>
       <ul>
-        {points.map((p) => (
+        {points.items.map((p) => (
           <li key={p}>{p}</li>
         ))}
       </ul>
@@ -292,10 +287,12 @@ interface ProducerProps {
   b: Broadcast
   maps: PitchMaps
   s: Strings
+  lang: string
 }
 
-export function ProducerDesk({ match, room, b, maps, s }: ProducerProps) {
+export function ProducerDesk({ match, room, b, maps, s, lang }: ProducerProps) {
   const c = useConsole(match, room)
+  const t = s.prod
   const all = Object.values(c.insights).sort((x, y) => y.period - x.period || y.t - x.t)
   const waiting = all.filter((i) => i.status === 'awaiting_approval')
   const rundown = all.filter((i) => i.status !== 'awaiting_approval')
@@ -310,6 +307,8 @@ export function ProducerDesk({ match, room, b, maps, s }: ProducerProps) {
       names={maps.names}
       model={model}
       supervised={supervised}
+      s={s}
+      lang={lang}
       onApprove={() => c.send({ action: 'approve', insight: ins.id })}
       onReject={() => c.send({ action: 'reject', insight: ins.id })}
     />
@@ -319,9 +318,9 @@ export function ProducerDesk({ match, room, b, maps, s }: ProducerProps) {
     <div className="producer">
       <section className="monitor">
         <div className="monitor-head">
-          <span className="onair">On air</span>
+          <span className="onair">{t.onAir}</span>
           <a href={`${location.pathname}?match=${match.id}&view=overlay&room=${room}`} target="_blank" rel="noreferrer">
-            Clean overlay for OBS or vMix
+            {t.overlay}
           </a>
         </div>
         <div className="monitor-screen">
@@ -335,104 +334,106 @@ export function ProducerDesk({ match, room, b, maps, s }: ProducerProps) {
       <section className="console-controls">
         <div className="tabs">
           <button className={!supervised ? 'on' : ''} onClick={() => c.send({ action: 'mode', value: 'auto' })}>
-            Automatic
+            {t.auto}
           </button>
           <button className={supervised ? 'on' : ''} onClick={() => c.send({ action: 'mode', value: 'supervised' })}>
-            Approve before air
+            {t.supervised}
           </button>
         </div>
         <div className="tabs">
           {usage && (
             <button className={`model ${c.control.model ? 'on' : 'off'}`} onClick={() => c.send({ action: 'model', value: !c.control.model })}>
-              {c.control.model ? `Model on: ${model}` : 'Model cut: templates only'}
+              {c.control.model ? `${t.modelOn}: ${model}` : t.modelCut}
             </button>
           )}
           <button
             className={`inject ${c.control.unreliable > 0 ? 'on' : ''}`}
             onClick={() => c.send({ action: 'unreliable', value: c.control.unreliable > 0 ? 0 : 0.3 })}
           >
-            {c.control.unreliable > 0 ? `Storyteller errors on (${Math.round(c.control.unreliable * 100)}%)` : 'Inject storyteller errors'}
+            {c.control.unreliable > 0 ? `${t.injectOn} (${Math.round(c.control.unreliable * 100)}%)` : t.inject}
           </button>
           <button className={`kill ${c.control.killed ? 'on' : ''}`} onClick={() => c.send({ action: 'kill', value: !c.control.killed })}>
-            {c.control.killed ? 'Graphics off: restore' : 'Kill all graphics'}
+            {c.control.killed ? t.restore : t.kill}
           </button>
         </div>
         <div className="type-toggles">
-          {TYPES.map(([type, label]) => {
+          {TYPES.map((type) => {
             const off = c.control.disabled.includes(type)
             return (
               <button key={type} className={off ? 'off' : 'on'} onClick={() => c.send({ action: 'type', value: type, on: off })}>
-                {label}
+                {s.types[type] ?? type}
               </button>
             )
           })}
         </div>
       </section>
 
-      <TalkingPoints match={match} />
+      <TalkingPoints match={match} lang={lang} title={t.talking} />
 
       <div className="console-grid">
         <section className="rundown">
           {supervised && (
             <>
-              <h4>Needs approval ({waiting.length})</h4>
-              {waiting.length === 0 && <p className="empty">Nothing waiting. New insights stop here until you approve them.</p>}
+              <h4>
+                {t.needsApproval} ({waiting.length})
+              </h4>
+              {waiting.length === 0 && <p className="empty">{t.nothingWaiting}</p>}
               {waiting.map(card)}
             </>
           )}
-          <h4>Rundown</h4>
-          {rundown.length === 0 && <p className="empty">Insights from the crew appear here as the match plays.</p>}
+          <h4>{t.rundown}</h4>
+          {rundown.length === 0 && <p className="empty">{t.rundownEmpty}</p>}
           {rundown.map(card)}
         </section>
 
         <section className="crew">
-          <h4>Insight crew</h4>
+          <h4>{t.crew}</h4>
           <div className="strip small">
             <div>
               <div className="n">{c.crew?.insights ?? 0}</div>
-              <div className="l">insights</div>
+              <div className="l">{t.insights}</div>
             </div>
             <div>
               <div className="n">{c.crew?.rejections ?? 0}</div>
-              <div className="l">rejected</div>
+              <div className="l">{t.rejected}</div>
             </div>
             <div>
               <div className="n">{c.crew?.fallbacks ?? 0}</div>
-              <div className="l">fallbacks</div>
+              <div className="l">{t.fallbacks}</div>
             </div>
             <div>
               <div className="n">${(usage?.cost_usd ?? 0).toFixed(3)}</div>
-              <div className="l">credit used</div>
+              <div className="l">{t.credit}</div>
             </div>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Agent</th>
-                <th className="num">Runs</th>
-                <th className="num">Time</th>
-                <th>Model</th>
+                <th>{t.agent}</th>
+                <th className="num">{t.runs}</th>
+                <th className="num">{t.time}</th>
+                <th>{t.model}</th>
               </tr>
             </thead>
             <tbody>
-              {AGENTS.map(([key, label, usesModel]) => {
+              {AGENTS.map(([key, usesModel]) => {
                 const u = usage?.agents[key]
                 return (
                   <tr key={key}>
-                    <td className="name">{label}</td>
+                    <td className="name">{s.agents[key]}</td>
                     <td className="num">{c.crew?.executors[key]?.calls ?? 0}</td>
                     <td className="num">{((c.crew?.executors[key]?.ms ?? 0) / 1000).toFixed(1)} s</td>
-                    <td>{usesModel ? (u ? `${u.calls} calls, ${u.cached} cached` : '-') : 'rules'}</td>
+                    <td>{usesModel ? (u ? `${u.calls} ${t.calls}, ${u.cached} ${t.cached}` : '-') : t.rules}</td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
-          <h4>Crew log</h4>
-          {c.notes.length === 0 && <p className="empty">No rejections yet. Inject storyteller errors or cut the model to see recovery.</p>}
+          <h4>{t.log}</h4>
+          {c.notes.length === 0 && <p className="empty">{t.logEmpty}</p>}
           <ul className="notes">
             {c.notes.map((n) => (
-              <NoteItem key={n.id} n={n} />
+              <NoteItem key={n.id} n={n} s={s} />
             ))}
           </ul>
         </section>

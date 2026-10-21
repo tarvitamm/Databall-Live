@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 const base = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true }
 
 export function PlayIcon() {
@@ -78,12 +80,22 @@ export function CloseIcon() {
   )
 }
 
-export function Mark() {
+export function Mark({ size = 20 }: { size?: number }) {
+  const id = useId().replace(/[^a-zA-Z0-9]/g, '')
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" />
-      <circle cx="12" cy="12" r="3" fill="var(--paper)" stroke="currentColor" strokeWidth="1.8" />
+    <svg viewBox="0 0 40 48" width={size} height={size * 1.2} fill="currentColor" aria-hidden>
+      <defs>
+        <mask id={`cut${id}`}>
+          <rect x="-10" y="-10" width="60" height="68" fill="#fff" />
+          <circle cx="20" cy="21.6" r="3.5" fill="#000" />
+        </mask>
+        <rect id={`bar${id}`} x="20" y="-5" width="4.5" height="35" />
+      </defs>
+      <g transform="translate(40 0) scale(-1 1) rotate(15 20 21.6)" mask={`url(#cut${id})`}>
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+          <use key={a} href={`#bar${id}`} transform={`rotate(${a} 20 21.6)`} />
+        ))}
+      </g>
     </svg>
   )
 }

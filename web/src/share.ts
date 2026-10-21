@@ -143,7 +143,7 @@ export async function shareImage(packet: Packet, match: MatchDetail, teamOf: Rec
 
   ctx.fillStyle = LIGHT.ink
   ctx.font = `600 34px ${FONT}`
-  ctx.fillText('Blindside', left, H - 136)
+  ctx.fillText('Databall Live', left, H - 136)
   ctx.fillStyle = LIGHT.ink3
   ctx.font = `400 28px ${FONT}`
   ctx.textAlign = 'right'
@@ -176,7 +176,7 @@ export function postToFacebook(link: string): void {
   open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`)
 }
 
-export function download(blob: Blob, name = 'blindside-insight.png'): void {
+export function download(blob: Blob, name = 'databall-live-insight.png'): void {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = name
@@ -185,7 +185,7 @@ export function download(blob: Blob, name = 'blindside-insight.png'): void {
 }
 
 export async function postToInstagram(blob: Blob, text: string): Promise<'shared' | 'saved'> {
-  const file = new File([blob], 'blindside-insight.png', { type: 'image/png' })
+  const file = new File([blob], 'databall-live-insight.png', { type: 'image/png' })
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({ files: [file], text })
     return 'shared'

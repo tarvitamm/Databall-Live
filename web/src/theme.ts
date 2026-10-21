@@ -3,8 +3,14 @@ import { useEffect, useState } from 'react'
 export type Theme = 'light' | 'dark'
 
 export interface Palette {
-  pitch: string
-  line: string
+  grassA: string
+  grassB: string
+  mark: string
+  net: string
+  post: string
+  standTop: string
+  standBottom: string
+  boardMid: string
   us: string
   opp: string
   ink: string
@@ -17,7 +23,7 @@ export interface Palette {
 
 function initial(): Theme {
   try {
-    const saved = localStorage.getItem('blindside.theme')
+    const saved = localStorage.getItem('databall.theme')
     if (saved === 'light' || saved === 'dark') return saved
   } catch {
     return 'light'
@@ -30,7 +36,7 @@ export function useTheme() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     try {
-      localStorage.setItem('blindside.theme', theme)
+      localStorage.setItem('databall.theme', theme)
     } catch {
       return
     }
@@ -47,8 +53,14 @@ export function palette(): Palette {
   const css = getComputedStyle(document.documentElement)
   const v = (name: string) => css.getPropertyValue(name).trim()
   cached = {
-    pitch: v('--pitch'),
-    line: v('--pitch-line'),
+    grassA: v('--grass-a'),
+    grassB: v('--grass-b'),
+    mark: v('--mark'),
+    net: v('--net'),
+    post: v('--post'),
+    standTop: v('--stand-top'),
+    standBottom: v('--stand-bottom'),
+    boardMid: v('--board-mid'),
     us: v('--us'),
     opp: v('--opp'),
     ink: v('--ink'),

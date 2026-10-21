@@ -2,7 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, openBroadcast, type Stream } from './api'
 import { MatchClock } from './clock'
 import type { Tag, Trail } from './components/Pitch'
-import type { FrameMsg, HistoryMsg, MatchDetail, Packet, Prediction, PredictionResult, Profile, StateMsg, TransportMsg } from './types'
+import type {
+  DetectMsg,
+  Detection,
+  FrameMsg,
+  HistoryMsg,
+  MatchDetail,
+  Packet,
+  Prediction,
+  PredictionResult,
+  Profile,
+  StateMsg,
+  TransportMsg,
+} from './types'
 
 export interface Call {
   prompt: Prediction
@@ -24,7 +36,7 @@ const EMPTY_SCORE: Score = { points: 0, streak: 0, best: 0, called: 0, played: 0
 
 function loadScore(): Score {
   try {
-    const saved = localStorage.getItem('blindside.score')
+    const saved = localStorage.getItem('databall.score')
     return saved ? { ...EMPTY_SCORE, ...(JSON.parse(saved) as Score), last: undefined } : EMPTY_SCORE
   } catch {
     return EMPTY_SCORE
@@ -65,6 +77,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
   const [recap, setRecap] = useState<Timed<{ packet: Packet }> | null>(null)
   const [state, setState] = useState<StateMsg | null>(null)
   const [trails, setTrails] = useState<Timed<Trail>[]>([])
+  const [detections, setDetections] = useState<{ items: Detection[]; count: number }>({ items: [], count: 0 })
   const [calls, setCalls] = useState<Record<string, Call>>({})
   const [picks, setPicks] = useState<Record<string, string>>({})
   const picksRef = useRef(picks)
@@ -76,7 +89,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
 
   useEffect(() => {
     try {
-      localStorage.setItem('blindside.score', JSON.stringify({ ...score, last: undefined }))
+      localStorage.setItem('databall.score', JSON.stringify({ ...score, last: undefined }))
     } catch {
       return
     }
@@ -150,6 +163,9 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
         })
       } else if (msg.kind === 'state') {
         setState(msg as StateMsg)
+      } else if (msg.kind === 'detect') {
+        const m = msg as DetectMsg
+        setDetections((d) => ({ items: [...[...m.items].reverse(), ...d.items].slice(0, 8), count: m.count }))
       } else if (msg.kind === 'prediction') {
         const m = msg as Prediction
         setCalls((all) => ({ ...all, [m.id]: { prompt: m, received: Date.now() } }))
@@ -176,6 +192,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
         clear()
         setFeed([])
         setCalls({})
+        setDetections({ items: [], count: 0 })
         setPicks({})
       }
     })
@@ -206,6 +223,7 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
     recap: recap && showing(recap, now) && recap.packet.lang === profile.lang ? recap.packet : null,
     state,
     trails: trails.filter((x) => showing(x, now)),
+    detections,
     calls: Object.values(calls).sort((a, b) => b.prompt.period - a.prompt.period || b.prompt.opens - a.prompt.opens),
     picks,
     pick: (id: string, option: string) => setPicks((all) => (all[id] ? all : { ...all, [id]: option })),
