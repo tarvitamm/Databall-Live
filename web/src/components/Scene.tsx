@@ -96,7 +96,7 @@ export function Scene({ match, packet, maps, s, lang, compact = false, onClose }
   const [frames, setFrames] = useState<FrameMsg[]>([])
   const [k, setK] = useState(0)
   const [playing, setPlaying] = useState(true)
-  const spec = useMemo(() => buildScene(match, packet, maps, s, lang), [match, packet, maps, s, lang])
+  const spec = useMemo(() => buildScene(match, packet, maps, s, lang, compact), [match, packet, maps, s, lang, compact])
   const live = useRef({ pos: 0, playing: true, frames: [] as FrameMsg[], spec })
   const [start, end] = sceneWindow(packet)
 
@@ -154,13 +154,14 @@ export function Scene({ match, packet, maps, s, lang, compact = false, onClose }
       }
       const f0 = st.frames[i]
       const f1 = st.frames[Math.min(i + 1, n - 1)]
-      const m = st.spec.measure(st.frames, i)
       const players: Record<string, P2> = {}
       for (const [id, p0] of Object.entries(f0.players)) {
         const p1 = f1.players[id] ?? p0
         players[id] = [p0[0] + (p1[0] - p0[0]) * a, p0[1] + (p1[1] - p0[1]) * a]
       }
-      const ball = f0.ball.map((v, j) => v + (f1.ball[j] - v) * a)
+      const ball = f0.ball.map((v, j) => v + (f1.ball[j] - v) * a) as [number, number, number]
+      // measure on the in-between frame too, so marks glide with the players instead of jumping 5 times a second
+      const m = st.spec.measure([...st.frames.slice(0, i + 1), { ...f0, players, ball }], i + 1)
 
       const dpr = window.devicePixelRatio || 1
       const width = el.clientWidth
@@ -213,30 +214,36 @@ export function Scene({ match, packet, maps, s, lang, compact = false, onClose }
       drawBall(ctx, cam, ball[0], ball[1], ball[2])
       for (const [x, y, num] of badges) badge(ctx, x, y, num)
 
-      ctx.font = '600 13px "Google Sans", system-ui, sans-serif'
+      const big = compact ? 11.5 : 13
+      const h = compact ? 19 : 22
+      const placed: [number, number, number, number][] = []
       for (const lab of m.labels) {
         const head = heads[lab.id]
         if (!head) continue
         const name = maps.names[lab.id] ?? lab.id
-        ctx.font = '600 13px "Google Sans", system-ui, sans-serif'
+        ctx.font = `600 ${big}px "Google Sans", system-ui, sans-serif`
         const wName = ctx.measureText(name).width
-        ctx.font = '400 12px "Google Sans", system-ui, sans-serif'
+        ctx.font = `400 ${big - 1}px "Google Sans", system-ui, sans-serif`
         const wRole = ctx.measureText(lab.role).width
-        const w = wName + wRole + 22
+        const w = wName + wRole + 20
         const x0 = head[0] - w / 2
-        const y0 = head[1] - 30
-        ctx.fillStyle = 'rgba(10,18,26,0.88)'
+        let y0 = head[1] - h - 8
+        for (let tries = 0; tries < 5 && placed.some(([x, y, pw]) => x0 < x + pw && x < x0 + w && y0 < y + h && y < y0 + h); tries++) {
+          y0 -= h + 4
+        }
+        placed.push([x0, y0, w, h])
+        ctx.fillStyle = 'rgba(10,18,26,0.9)'
         ctx.beginPath()
-        ctx.roundRect(x0, y0, w, 22, 6)
+        ctx.roundRect(x0, y0, w, h, 6)
         ctx.fill()
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
-        ctx.font = '600 13px "Google Sans", system-ui, sans-serif'
+        ctx.font = `600 ${big}px "Google Sans", system-ui, sans-serif`
         ctx.fillStyle = TONES[lab.tone]
-        ctx.fillText(name, x0 + 8, y0 + 11.5)
-        ctx.font = '400 12px "Google Sans", system-ui, sans-serif'
+        ctx.fillText(name, x0 + 7, y0 + h / 2 + 0.5)
+        ctx.font = `400 ${big - 1}px "Google Sans", system-ui, sans-serif`
         ctx.fillStyle = 'rgba(238,243,241,0.75)'
-        ctx.fillText(lab.role, x0 + 14 + wName, y0 + 11.5)
+        ctx.fillText(lab.role, x0 + 13 + wName, y0 + h / 2 + 0.5)
       }
     }
     raf = requestAnimationFrame(render)
@@ -253,14 +260,17 @@ export function Scene({ match, packet, maps, s, lang, compact = false, onClose }
     setK(value)
     setPlaying(false)
   }
+  const steps = measure?.items ?? []
+  const progress = frames.length > 1 ? k / (frames.length - 1) : 0
+  const reveal = compact ? Math.min(steps.length, 1 + Math.floor(progress * steps.length)) : steps.length
   const items = (
     <ol className="scene-items">
-      {measure?.items.map((it) => (
-        <li key={it.n}>
+      {steps.map((it, i) => (
+        <li key={it.n} className={i < reveal ? 'on' : 'off'}>
           <b>{it.n}</b>
           <div>
             <strong>{it.label}</strong>
-            <span>{it.value}</span>
+            {it.value && <span>{it.value}</span>}
           </div>
         </li>
       ))}

@@ -72,7 +72,7 @@ function DeskCard({ p, match, maps, s, lang }: { p: Packet; match: MatchDetail; 
           <span className={`src ${byModel ? 'model' : ''}`}>
             {s.writtenBy} {byModel ? writer : s.template}
           </span>
-          {p.viz ? (
+          {p.viz && p.viz.kind !== 'none' ? (
             <button className="pill" onClick={() => setOpen(true)}>
               <ReplayIcon />
               {s.scene.explain}

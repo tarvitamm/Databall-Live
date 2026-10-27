@@ -3207,3 +3207,12 @@ button.start {
   font-size: 12px;
   line-height: 1.5;
 }
+
+.scene.compact .scene-items li {
+  transition: opacity 0.35s, transform 0.35s;
+}
+
+.scene.compact .scene-items li.off {
+  opacity: 0.25;
+  transform: translateX(-4px);
+}

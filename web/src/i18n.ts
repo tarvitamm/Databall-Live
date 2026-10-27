@@ -2,6 +2,13 @@ import type { Lang } from './types'
 
 const UI = {
   en: {
+    sceneFan: {
+      pressHunt: '{n} players closing in', pressLead: '{name} leads the hunt', pressOutlets: 'Safe passes left: {n}', pressTrapped: 'No safe pass left',
+      decoyRun: '{name} sprints {d} m', decoyFollow: '{name} goes with the run', decoyGap: 'A {d} m gap opens behind', decoyUse: '{name} runs into it',
+      chanceBuild: '{n} passes, {s} seconds', chanceSolo: 'Won it and went alone, {s} seconds', chanceShot: '{name} gets the shot away', chanceOdds: 'A 1 in {odds} chance', chanceBig: 'A big chance', chanceDecoy: "{name}'s run made it",
+      gapLines: 'Their lines are {d} m apart', gapPocket: '{name} finds the pocket', overload: '{a} against {d} around the ball',
+      sprintSpeed: '{name} hits {v} km/h', sprintDist: '{d} m in one burst',
+    },
     eventsIn: 'Events in',
     names: 'Names',
     ev: { pass: 'Pass', shot: 'Shot', tackle: 'Tackle', interception: 'Interception', ball_recovery: 'Recovery', clearance: 'Clearance', pressure: 'Pressure', possession: 'Possession', goal: 'Goal', foul: 'Foul', kick_off: 'Kick-off' } as Record<string, string>,
@@ -152,6 +159,13 @@ const UI = {
     scenario: { free: 'League match', the_press: 'The press', the_decoy: 'The decoy', the_fade: 'The fade' },
   },
   es: {
+    sceneFan: {
+      pressHunt: '{n} jugadores cierran el cerco', pressLead: '{name} lidera la presión', pressOutlets: 'Pases seguros: {n}', pressTrapped: 'Sin pase seguro',
+      decoyRun: '{name} esprinta {d} m', decoyFollow: '{name} sigue la carrera', decoyGap: 'Se abre un hueco de {d} m', decoyUse: '{name} lo aprovecha',
+      chanceBuild: '{n} pases, {s} segundos', chanceSolo: 'La robó y se fue solo, {s} segundos', chanceShot: '{name} remata', chanceOdds: 'Una ocasión de 1 entre {odds}', chanceBig: 'Una ocasión clarísima', chanceDecoy: 'El desmarque de {name} la creó',
+      gapLines: 'Sus líneas, a {d} m', gapPocket: '{name} encuentra el hueco', overload: '{a} contra {d} junto al balón',
+      sprintSpeed: '{name} llega a {v} km/h', sprintDist: '{d} m de un tirón',
+    },
     eventsIn: 'Eventos entrantes',
     names: 'Nombres',
     ev: { pass: 'Pase', shot: 'Remate', tackle: 'Entrada', interception: 'Intercepción', ball_recovery: 'Recuperación', clearance: 'Despeje', pressure: 'Presión', possession: 'Posesión', goal: 'Gol', foul: 'Falta', kick_off: 'Saque inicial' } as Record<string, string>,
@@ -303,6 +317,13 @@ const UI = {
     scenario: { free: 'Partido de liga', the_press: 'La presión', the_decoy: 'El señuelo', the_fade: 'El desgaste' },
   },
   et: {
+    sceneFan: {
+      pressHunt: '{n} mängijat piirab palli', pressLead: '{name} juhib jahti', pressOutlets: 'Turvalisi söötusid: {n}', pressTrapped: 'Turvalist söötu pole',
+      decoyRun: '{name} spurdib {d} m', decoyFollow: '{name} läheb jooksuga kaasa', decoyGap: 'Avaneb {d} m vahe', decoyUse: '{name} jookseb sinna',
+      chanceBuild: '{n} söötu, {s} sekundit', chanceSolo: 'Võitis palli ja läks üksi, {s} sekundit', chanceShot: '{name} lööb', chanceOdds: 'Võimalus 1 : {odds}', chanceBig: 'Suur võimalus', chanceDecoy: '{name} lõi jooksuga võimaluse',
+      gapLines: 'Liinide vahe {d} m', gapPocket: '{name} leiab ruumi', overload: '{a} vs {d} palli ümber',
+      sprintSpeed: '{name}: {v} km/h', sprintDist: '{d} m ühe spurdiga',
+    },
     eventsIn: 'Sisenevad sündmused',
     names: 'Nimed',
     ev: { pass: 'Sööt', shot: 'Löök', tackle: 'Võitlus', interception: 'Pealtkuulamine', ball_recovery: 'Tagasivõit', clearance: 'Väljalöök', pressure: 'Survestus', possession: 'Valdamine', goal: 'Värav', foul: 'Rike', kick_off: 'Avalöök' } as Record<string, string>,

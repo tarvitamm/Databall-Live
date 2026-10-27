@@ -90,7 +90,7 @@ interface CardProps {
 }
 
 function FeedCard({ p, match, maps, s, lang, open, onReplay, onShare }: CardProps) {
-  const replayable = Boolean(p.viz)
+  const replayable = Boolean(p.viz && p.viz.kind !== 'none')
   return (
     <article className={`app-card ${side(match, p)}`}>
       <div className="app-card-head">
@@ -130,7 +130,7 @@ function Popup({ p, match, s, onReplay, onShare, onClose }: Omit<CardProps, 'ope
       <b>{p.text.headline}</b>
       {p.text.body && <p>{p.text.body}</p>}
       <div className="app-actions">
-        {p.viz ? (
+        {p.viz && p.viz.kind !== 'none' ? (
           <button onClick={onReplay}>
             <ReplayIcon />
             {s.replay}
