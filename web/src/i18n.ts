@@ -58,7 +58,18 @@ const UI = {
     pts: 'pts',
     streak: 'streak',
     yourCalls: 'Your calls',
-    tabs: { feed: 'Feed', fantasy: 'Fantasy', league: 'Predict & win' },
+    tabs: { feed: 'Feed', match: 'Match', fantasy: 'Fantasy', league: 'Predict & win' },
+    centre: {
+      maps: 'Match maps', liveText: 'Live text', insight: 'Databall insight', attacking: 'Attacking',
+      kinds: { shots: 'Shots', passes: 'Passes', dribbles: 'Dribbles', decoys: 'Decoy runs', pressing: 'Pressing', attacking: 'Attacks', duels: 'Duels', defending: 'Defending' } as Record<string, string>,
+      legend: { goal: 'Goal', saved: 'On target', off_target: 'Off target', blocked: 'Blocked', complete: 'Completed', failed: 'Failed', won: 'Won', lost: 'Lost', interception: 'Interceptions', clearance: 'Clearances', ball_recovery: 'Recoveries' } as Record<string, string>,
+      sum: {
+        shots: '{n} shots · {xg} xG · goals: {g}', passes: '{n} passes · {pct}% completed', dribbles: '{n} carries · {m} m forward on average',
+        decoys: '{n} decoy runs · most by {name} ({k})', pressing: '{n} pressures · {pct}% in their half', attacking: '{n} entries into the final third · left {l}% · centre {c}% · right {r}%',
+        duels: '{won} of {n} tackles won', defending: '{i} interceptions · {c} clearances · {r} recoveries',
+      } as Record<string, string>,
+      none: 'Nothing yet',
+    },
     fantasy: {
       yours: 'Your players in this game', pick: 'Star the players in your fantasy team', star: 'In my fantasy team',
       how: 'Fantasy league rules, plus a point for every two decoy runs. Bonus is provisional until full time.',
@@ -227,7 +238,18 @@ const UI = {
     pts: 'pts',
     streak: 'racha',
     yourCalls: 'Tus predicciones',
-    tabs: { feed: 'Directo', fantasy: 'Fantasy', league: 'Predice y gana' },
+    tabs: { feed: 'Directo', match: 'Partido', fantasy: 'Fantasy', league: 'Predice y gana' },
+    centre: {
+      maps: 'Mapas del partido', liveText: 'Minuto a minuto', insight: 'Análisis Databall', attacking: 'Ataca',
+      kinds: { shots: 'Remates', passes: 'Pases', dribbles: 'Conducciones', decoys: 'Desmarques de arrastre', pressing: 'Presión', attacking: 'Ataques', duels: 'Duelos', defending: 'Defensa' } as Record<string, string>,
+      legend: { goal: 'Gol', saved: 'A puerta', off_target: 'Fuera', blocked: 'Bloqueado', complete: 'Completado', failed: 'Fallado', won: 'Ganado', lost: 'Perdido', interception: 'Intercepciones', clearance: 'Despejes', ball_recovery: 'Recuperaciones' } as Record<string, string>,
+      sum: {
+        shots: '{n} remates · {xg} xG · goles: {g}', passes: '{n} pases · {pct}% completados', dribbles: '{n} conducciones · {m} m hacia delante de media',
+        decoys: '{n} desmarques de arrastre · más de {name} ({k})', pressing: '{n} presiones · {pct}% en campo rival', attacking: '{n} llegadas al último tercio · izquierda {l}% · centro {c}% · derecha {r}%',
+        duels: '{won} de {n} entradas ganadas', defending: '{i} intercepciones · {c} despejes · {r} recuperaciones',
+      } as Record<string, string>,
+      none: 'Nada todavía',
+    },
     fantasy: {
       yours: 'Tus jugadores en este partido', pick: 'Marca con estrella a los jugadores de tu equipo fantasy', star: 'En mi equipo fantasy',
       how: 'Reglas de liga fantasy, más un punto por cada dos desmarques de arrastre. El bonus es provisional hasta el final.',
@@ -397,7 +419,18 @@ const UI = {
     pts: 'p',
     streak: 'seeria',
     yourCalls: 'Sinu ennustused',
-    tabs: { feed: 'Voog', fantasy: 'Fantasy', league: 'Ennusta ja võida' },
+    tabs: { feed: 'Voog', match: 'Mäng', fantasy: 'Fantasy', league: 'Ennusta ja võida' },
+    centre: {
+      maps: 'Mängu kaardid', liveText: 'Otseblogi', insight: 'Databalli analüüs', attacking: 'Ründab',
+      kinds: { shots: 'Löögid', passes: 'Söödud', dribbles: 'Triblingud', decoys: 'Peibutusjooksud', pressing: 'Press', attacking: 'Rünnakud', duels: 'Duellid', defending: 'Kaitse' } as Record<string, string>,
+      legend: { goal: 'Värav', saved: 'Väravale', off_target: 'Mööda', blocked: 'Blokeeritud', complete: 'Õnnestunud', failed: 'Ebaõnnestunud', won: 'Võidetud', lost: 'Kaotatud', interception: 'Pealtvõtud', clearance: 'Väljalöögid', ball_recovery: 'Tagasivõidud' } as Record<string, string>,
+      sum: {
+        shots: '{n} lööki · {xg} xG · väravad: {g}', passes: '{n} söötu · {pct}% õnnestus', dribbles: '{n} triblingut · keskmiselt {m} m edasi',
+        decoys: '{n} peibutusjooksu · enim {name} ({k})', pressing: '{n} pressi · {pct}% vastase poolel', attacking: '{n} sisenemist viimasesse kolmandikku · vasak {l}% · kese {c}% · parem {r}%',
+        duels: '{won} / {n} äravõtmist võidetud', defending: '{i} pealtvõttu · {c} väljalööki · {r} tagasivõitu',
+      } as Record<string, string>,
+      none: 'Veel pole midagi',
+    },
     fantasy: {
       yours: 'Sinu mängijad selles mängus', pick: 'Märgi tärniga oma fantasy meeskonna mängijad', star: 'Minu fantasy meeskonnas',
       how: 'Fantasy liiga reeglid, lisaks punkt iga kahe peibutusjooksu eest. Boonus on esialgne kuni lõpuvileni.',

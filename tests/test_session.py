@@ -4,7 +4,9 @@ import pytest
 
 from databall_live.contracts import ViewerProfile
 from databall_live.insights.pipeline import run, save
+from databall_live.live.commentary import commentary
 from databall_live.live.fantasy import fantasy
+from databall_live.live.maps import maps
 from databall_live.live.predictions import POLLS, Predictor
 from databall_live.live.session import LiveSession
 from databall_live.live.store import MatchStore
@@ -184,6 +186,32 @@ def test_fantasy_points_follow_the_match(match):
     assert row["points"] > before[scorer]["points"]
     assert [r["points"] for r in after] == sorted((r["points"] for r in after), reverse=True)
     assert sum(1 for r in after if any(k == "bonus" for k, _, _ in r["items"])) == 3
+
+
+def test_live_text_follows_the_events(match):
+    bundle, _ = match
+    md = bundle.md
+    lines = commentary(md, "en")
+    assert lines[0]["text"] == "First Half begins." and lines[-1]["text"].startswith("Match ends")
+    assert lines == sorted(lines, key=lambda x: (x["period"], x["t"]))
+    goals = [x for x in lines if x["kind"] == "goal"]
+    assert len(goals) == len(bundle.goals)
+    final = bundle.score(*max((g[0], g[1]) for g in bundle.goals)) if bundle.goals else dict.fromkeys(md.codes, 0)
+    home, away = md.meta.home, md.meta.away
+    assert f"{home.name} {final[home.code]}, {away.name} {final[away.code]}" in lines[-1]["text"]
+    fouls = sum(1 for e in md.events if e["type"] == "foul")
+    assert sum(1 for x in lines if x["kind"] == "foul") == fouls
+    assert len(commentary(md, "es")) == len(commentary(md, "et")) == len(lines)
+
+
+def test_maps_face_the_goal_each_team_attacks(match):
+    bundle, _ = match
+    period, (_, end) = max(bundle.period_bounds.items())
+    out = maps(bundle.md, bundle.patterns, {}, period, end)
+    for code, m in out.items():
+        assert len(m["shots"]) == sum(1 for e in bundle.md.events if e["type"] == "shot" and e.get("team") == code)
+        assert all(x > 52.5 for x, *_ in m["shots"])
+        assert all(0 <= v <= 105 for row in m["passes"] for v in row[:4:2])
 
 
 def test_events_stream_with_pass_quality_and_possession(match):

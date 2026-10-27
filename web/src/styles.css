@@ -3507,3 +3507,252 @@ button.start {
   font-size: 11.5px;
   margin: 8px 0 0;
 }
+
+.app-tabs button {
+  font-size: 12px;
+  padding: 6px 4px;
+}
+
+.centre-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .centre-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.map-kinds {
+  margin-top: 6px;
+}
+
+.map-kinds button {
+  font-size: 11.5px;
+  padding: 4px 10px;
+}
+
+.map {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 12px;
+  background: #13261c;
+}
+
+.map-lines rect,
+.map-lines line,
+.map-lines circle {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 0.3;
+}
+
+.map .us {
+  --tone: #8fd16a;
+}
+
+.map .opp {
+  --tone: #f08a5d;
+}
+
+.map .shot {
+  stroke: #fff;
+  stroke-width: 0.25;
+  fill: var(--tone);
+  fill-opacity: 0.35;
+}
+
+.map .shot.goal {
+  fill-opacity: 1;
+  stroke-width: 0.5;
+}
+
+.map .shot.saved {
+  fill-opacity: 0.7;
+}
+
+.map .shot.blocked {
+  fill: #9aa3a0;
+  fill-opacity: 0.6;
+}
+
+.map .pass line,
+.map .carry line,
+.map .run line {
+  stroke: var(--tone);
+  stroke-width: 0.25;
+  stroke-opacity: 0.6;
+}
+
+.map .pass circle,
+.map .carry circle,
+.map .run circle {
+  fill: var(--tone);
+}
+
+.map .pass.failed line {
+  stroke: #e2574c;
+  stroke-opacity: 0.45;
+}
+
+.map .pass.failed circle {
+  fill: #e2574c;
+}
+
+.map .carry line {
+  stroke-dasharray: 0.8 0.6;
+}
+
+.map .run line {
+  stroke-width: 0.6;
+  stroke-opacity: 0.9;
+}
+
+.map .heat {
+  fill: var(--tone);
+}
+
+.map .duel.won,
+.map .def.interception {
+  fill: #ffd34d;
+}
+
+.map .duel.lost {
+  fill: #e2574c;
+}
+
+.map .def.clearance {
+  fill: #ffffff;
+}
+
+.map .def.ball_recovery {
+  fill: var(--tone);
+}
+
+.map-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.map-dir {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.map-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.map-key i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--us);
+}
+
+.map-key.opp i {
+  background: var(--opp);
+}
+
+.map-key.off_target i {
+  opacity: 0.4;
+}
+
+.map-key.blocked i {
+  background: #9aa3a0;
+}
+
+.map-key.failed i,
+.map-key.lost i {
+  background: #e2574c;
+}
+
+.map-key.won i,
+.map-key.interception i {
+  background: #ffd34d;
+}
+
+.map-key.clearance i {
+  background: var(--ink-3);
+}
+
+.map-sum {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.live-text ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.live-text li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.live-text li .time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.live-text li p {
+  margin: 0;
+}
+
+.live-text li.goal,
+.live-text li.half {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.live-text li.goal {
+  border-left: 3px solid var(--good);
+  padding-left: 6px;
+}
+
+.live-text li.insight {
+  background: var(--elev);
+  border-radius: 10px;
+  padding: 8px 8px;
+  color: var(--ink);
+}
+
+.live-text li.insight small {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--us);
+}
+
+.live-text li.insight.opp small {
+  color: var(--opp);
+}
+
+.live-text li .body {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-2);
+}

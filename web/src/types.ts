@@ -154,6 +154,27 @@ export interface FantasyRow {
   items: [string, number, number][]
 }
 
+export interface LiveLine {
+  period: number
+  t: number
+  kind: string
+  team: string | null
+  text: string
+}
+
+export type MapKind = 'shots' | 'passes' | 'dribbles' | 'decoys' | 'pressing' | 'attacking' | 'duels' | 'defending'
+
+export interface TeamMaps {
+  shots: [number, number, number, string, string][]
+  passes: [number, number, number, number, number][]
+  dribbles: [number, number, number, number][]
+  decoys: [number, number, number, number, string][]
+  pressing: [number, number][]
+  attacking: [number, number, number, number, number][]
+  duels: [number, number, number][]
+  defending: [number, number, string][]
+}
+
 export interface CatchUp {
   score: Record<string, number>
   xg: Record<string, number>

@@ -8,6 +8,7 @@ import { useLive } from '../useLive'
 import { badgeFor } from '../badges'
 import { Badge, CallsList, LeaguePanel, PredictionPopup, ResultPopup, ScoreChip } from './Engage'
 import { FantasyPanel } from './Fantasy'
+import { EventMaps, LiveText } from './MatchCentre'
 import { CloseIcon, Mark, ReplayIcon, ShareIcon } from './Icons'
 import { ShareSheet } from './Moments'
 import { Pitch } from './Pitch'
@@ -318,17 +319,31 @@ export function FanApp({ club, onClub, metric, onMetric, ...props }: AppProps & 
 }) {
   const { match, b, s } = props
   const [catchUp, setCatchUp] = useState(false)
-  const [tab, setTab] = useState<'feed' | 'fantasy' | 'league'>('feed')
+  const [tab, setTab] = useState<'feed' | 'match' | 'fantasy' | 'league'>('feed')
   const ticker = b.tags[0]?.text ?? b.cards[0]?.text.headline
   const tabs = (
     <div className="app-tabs" role="tablist">
-      {(['feed', 'fantasy', 'league'] as const).map((k) => (
+      {(['feed', 'match', 'fantasy', 'league'] as const).map((k) => (
         <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
           {s.tabs[k]}
         </button>
       ))}
     </div>
   )
+  if (tab === 'match')
+    return (
+      <MobileApp
+        {...props}
+        path={`match/${match.id}`}
+        top={tabs}
+        body={
+          <>
+            <EventMaps match={match} now={b.now} maps={props.maps} s={s} />
+            <LiveText match={match} now={b.now} feed={b.feed} s={s} lang={props.lang} />
+          </>
+        }
+      />
+    )
   if (tab === 'fantasy') return <MobileApp {...props} path={`fantasy/${match.id}`} top={tabs} body={<FantasyPanel match={match} now={b.now} maps={props.maps} s={s} />} />
   if (tab === 'league') return <MobileApp {...props} path={`predict/${match.id}`} top={tabs} body={<LeaguePanel match={match} b={b} s={s} lang={props.lang} />} />
   const top = (

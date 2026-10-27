@@ -19,7 +19,9 @@ from fastapi.staticfiles import StaticFiles
 from ..contracts import ViewerProfile
 from ..stats.kinematics import count_sprints
 from ..stats.season import Season
+from .commentary import TEXT, commentary
 from .fantasy import fantasy
+from .maps import maps
 from .session import TRANSPORT, Sessions
 from .store import Bundle, MatchStore, frame_message, match_state, state_message
 from .talk import talking_points as season_talk
@@ -32,6 +34,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 store = MatchStore(Path(os.environ.get("DATABALL_DATA", "data/league")))
 sessions = Sessions(store)
 seasons: dict[str, Season] = {}
+play_by_play: dict[tuple[str, str], list[dict]] = {}
 SEASON_PLAYER = ("distance_km", "sprints", "top_speed_kmh", "decoy_runs", "pressures", "shots")
 
 
@@ -189,6 +192,23 @@ def fantasy_points(match_id: str, period: int, t: float) -> list[dict]:
     """Live fantasy points for every player in the match."""
     b = _bundle(match_id)
     return fantasy(b.md, b.goals, b.patterns, period, t, {p: start for p, (start, _) in b.period_bounds.items()})
+
+
+@app.get("/api/matches/{match_id}/commentary")
+def live_text(match_id: str, period: int, t: float, lang: str = "en") -> list[dict]:
+    """Play-by-play lines so far, newest first."""
+    b = _bundle(match_id)
+    lang = lang if lang in TEXT else "en"
+    if (match_id, lang) not in play_by_play:
+        play_by_play[(match_id, lang)] = commentary(b.md, lang)
+    return [x for x in reversed(play_by_play[(match_id, lang)]) if _before(x, period, t, "t")]
+
+
+@app.get("/api/matches/{match_id}/maps")
+def event_maps(match_id: str, period: int, t: float) -> dict:
+    """Shots, passes, dribbles, decoy runs, pressing, attacks, duels and defending per team so far."""
+    b = _bundle(match_id)
+    return maps(b.md, b.patterns, {x["event"]: x["xg"] or 0.0 for x in b.metrics["shots"]}, period, t)
 
 
 @app.get("/api/matches/{match_id}/compare")

@@ -1,4 +1,4 @@
-import type { CatchUp, Compare, FantasyRow, FrameMsg, LiveNumbers, MatchDetail, MatchSummary, PlayerStats, Profile, ServerMsg } from './types'
+import type { CatchUp, Compare, FantasyRow, FrameMsg, LiveLine, LiveNumbers, MatchDetail, MatchSummary, PlayerStats, Profile, ServerMsg, TeamMaps } from './types'
 
 async function get<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const query = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))
@@ -18,6 +18,9 @@ export const api = {
   talkingPoints: (id: string, lang: string) => get<string[]>(`/api/matches/${id}/talking-points`, { lang }),
   live: (id: string, period: number, t: number) => get<LiveNumbers>(`/api/matches/${id}/live`, { period, t }),
   fantasy: (id: string, period: number, t: number) => get<FantasyRow[]>(`/api/matches/${id}/fantasy`, { period, t }),
+  commentary: (id: string, period: number, t: number, lang: string) =>
+    get<LiveLine[]>(`/api/matches/${id}/commentary`, { period, t, lang }),
+  maps: (id: string, period: number, t: number) => get<Record<string, TeamMaps>>(`/api/matches/${id}/maps`, { period, t }),
   compare: (id: string, period: number, t: number) => get<Compare>(`/api/matches/${id}/compare`, { period, t }),
   replay: (id: string, period: number, start: number, end: number) =>
     get<{ frames: FrameMsg[] }>(`/api/matches/${id}/replay`, { period, start, end }),

@@ -7,6 +7,7 @@ import type { Broadcast } from '../useBroadcast'
 import { useLive } from '../useLive'
 import { Badge } from './Engage'
 import { ReplayIcon } from './Icons'
+import { EventMaps, LiveText } from './MatchCentre'
 import { SceneModal } from './Scene'
 
 function Sparkline({ values }: { values: number[] }) {
@@ -307,6 +308,10 @@ export function AnalystDesk({ match, b, maps, s, lang }: { match: MatchDetail; b
       </div>
       {live && <Rhythm match={match} data={live} feed={b.feed} s={s} />}
       {live && <LivePanel match={match} data={live} maps={maps} s={s} lang={lang} />}
+      <div className="centre-grid">
+        <EventMaps match={match} now={b.now} maps={maps} s={s} />
+        <LiveText match={match} now={b.now} feed={b.feed} s={s} lang={lang} />
+      </div>
       <SeasonTable match={match} b={b} s={s} />
       <h3 className="desk-title">{s.explained}</h3>
       {b.feed.length === 0 && <p className="empty">{s.noInsights}</p>}
