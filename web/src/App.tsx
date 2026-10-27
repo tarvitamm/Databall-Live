@@ -15,6 +15,7 @@ import { InputPanel, OverlayView } from './views'
 
 const VIEWS: View[] = ['fan', 'analyst', 'player', 'producer']
 const LANGS: Lang[] = ['en', 'es', 'et']
+const LANG_NAMES: Record<Lang, string> = { en: 'English', es: 'Español', et: 'Eesti' }
 const SPEEDS = [1, 2, 5, 10]
 const STAR = 'HAR_7'
 
@@ -174,13 +175,13 @@ export default function App() {
           ))}
         </nav>
         <span className="actions">
-          <span className="tabs">
+          <select className="lang-select" value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label="Language">
             {LANGS.map((l) => (
-              <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>
-                {l.toUpperCase()}
-              </button>
+              <option key={l} value={l}>
+                {LANG_NAMES[l]}
+              </option>
             ))}
-          </span>
+          </select>
           <button className="pill" onClick={theme.toggle}>
             {s.theme}
           </button>
@@ -205,7 +206,6 @@ export default function App() {
           <main className="io">
             <section className="io-col">
               <div className="io-label">
-                <span className="step">01</span>
                 <h2>{s.input}</h2>
                 <span className="eyebrow">{s.inputSub}</span>
               </div>
@@ -213,7 +213,6 @@ export default function App() {
             </section>
             <section className="io-col">
               <div className="io-label">
-                <span className="step">02</span>
                 <h2>{s.output}</h2>
                 <span className="eyebrow">{outputLabel(view, s)}</span>
               </div>
