@@ -1,8 +1,8 @@
 import { badgeFor } from '../badges'
 import type { Strings } from '../i18n'
-import { clock } from '../i18n'
-import type { Lang, Packet } from '../types'
-import type { Broadcast, Call } from '../useBroadcast'
+import { clock, fill } from '../i18n'
+import type { Lang, MatchDetail, Packet } from '../types'
+import { isOpen, type Broadcast, type Call } from '../useBroadcast'
 import { CheckIcon, CloseIcon, FlameIcon } from './Icons'
 
 export function Badge({ p, s }: { p: Packet; s: Strings }) {
@@ -34,7 +34,7 @@ function Options({ call, b, lang }: { call: Call; b: Broadcast; lang: Lang }) {
       {call.prompt.options.map((o) => {
         const state = call.result ? (o.id === call.result.answer ? 'right' : picked === o.id ? 'wrong' : '') : picked === o.id ? 'picked' : ''
         return (
-          <button key={o.id} className={state} disabled={Boolean(picked) || Boolean(call.result)} onClick={() => b.pick(call.prompt.id, o.id)}>
+          <button key={o.id} className={state} disabled={Boolean(picked) || !isOpen(call, b.now)} onClick={() => b.pick(call.prompt.id, o.id)}>
             {o.label[lang] ?? o.label.en}
             {state === 'right' && <CheckIcon />}
           </button>
@@ -122,6 +122,61 @@ export function CallsList({ b, s, lang }: { b: Broadcast; s: Strings; lang: Lang
           </article>
         )
       })}
+    </>
+  )
+}
+
+export function LeaguePanel({ match, b, s, lang }: { match: MatchDetail; b: Broadcast; s: Strings; lang: Lang }) {
+  const t = s.board
+  const rows = b.board?.rows ?? []
+  const mine = rows.findIndex((r) => r.fan === b.fan.id)
+  const shown = rows.slice(0, 10)
+  if (mine >= 10) shown.push(rows[mine])
+  return (
+    <>
+      <section className="prizes">
+        <b>{fill(t.prizes, { club: match.home.name })}</b>
+        <ol>
+          {[t.prize1, t.prize2, t.prize3].map((prize, i) => (
+            <li key={prize}>
+              <span className={`medal m${i + 1}`}>{i + 1}</span>
+              {prize}
+            </li>
+          ))}
+        </ol>
+        <small>{t.when}</small>
+      </section>
+      <label className="fan-name">
+        {t.name}
+        <input value={b.fan.name} maxLength={20} onChange={(e) => b.rename(e.target.value)} />
+      </label>
+      <p className="board-status">{mine >= 0 ? fill(t.rank, { n: mine + 1 }) : Object.keys(b.picks).length ? `${s.lockedIn}. ${s.waitingResult}.` : t.join}</p>
+      <ol className="board">
+        {shown.map((r) => {
+          const me = r.fan === b.fan.id
+          return (
+            <li key={r.fan} className={me ? 'me' : ''}>
+              <span className="rank">{rows.indexOf(r) + 1}</span>
+              <b>
+                {me ? b.fan.name : r.name}
+                {me && <small> ({t.you})</small>}
+              </b>
+              <span className="called">
+                {r.called}/{r.played} {t.called}
+              </span>
+              {r.streak >= 2 && (
+                <span className="hot">
+                  <FlameIcon />
+                  {r.streak}
+                </span>
+              )}
+              <em>{r.points}</em>
+            </li>
+          )
+        })}
+      </ol>
+      <p className="muted small">{fill(t.playing, { n: rows.length })}</p>
+      <CallsList b={b} s={s} lang={lang} />
     </>
   )
 }

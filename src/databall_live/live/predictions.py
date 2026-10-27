@@ -5,6 +5,7 @@ Answers come from the match events, but a result is only sent once the match clo
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 
 from ..insights.text import minute
@@ -13,6 +14,9 @@ from ..stats.match import MatchData
 WINDOW_S = 300.0
 GAP_S = 240.0
 NEXT_CLOSE_S = 60.0
+VOTE_S = 60.0
+POLL_EVERY_S = (150.0, 300.0)
+MAX_FANS = 500
 PERIODIC_MIN = (6, 19, 32)
 TRIGGERS = {"pressure_shift", "momentum_swing", "between_lines_gap", "overload", "counter_press"}
 
@@ -36,6 +40,26 @@ NO = {"en": "No", "es": "No", "et": "Ei"}
 SHOT_AT = {"en": "{team} shot at {minute}.", "es": "{team} remató en el {minute}.", "et": "{team}: löök {minute}."}
 NO_SHOT = {"en": "No {team} shot in the 5 minutes.", "es": "{team} no remató en esos 5 minutos.",
            "et": "{team} ei löönud 5 minuti jooksul."}
+POLLS = {
+    "goal": (600.0, {"en": "Goal in the next 10 minutes?", "es": "¿Gol en los próximos 10 minutos?",
+                     "et": "Kas järgmise 10 minuti jooksul tuleb värav?"}),
+    "foul": (180.0, {"en": "Foul in the next 3 minutes?", "es": "¿Falta en los próximos 3 minutos?",
+                     "et": "Kas järgmise 3 minuti jooksul tuleb vabalöök?"}),
+    "corner": (300.0, {"en": "Corner in the next 5 minutes?", "es": "¿Córner en los próximos 5 minutos?",
+                       "et": "Kas järgmise 5 minuti jooksul tuleb nurgalöök?"}),
+    "on_target": (300.0, {"en": "Shot on target in the next 5 minutes?",
+                          "es": "¿Remate a puerta en los próximos 5 minutos?",
+                          "et": "Kas järgmise 5 minuti jooksul tuleb löök väravale?"}),
+}
+HAPPENED = {
+    "goal": {"en": "Goal at {minute}.", "es": "Gol en el {minute}.", "et": "Värav {minute}."},
+    "foul": {"en": "Foul at {minute}.", "es": "Falta en el {minute}.", "et": "Vabalöök {minute}."},
+    "corner": {"en": "Corner at {minute}.", "es": "Córner en el {minute}.", "et": "Nurgalöök {minute}."},
+    "on_target": {"en": "On target at {minute}.", "es": "A puerta en el {minute}.", "et": "Löök väravale {minute}."},
+}
+MISSED = {"en": "It did not happen this time.", "es": "Esta vez no pasó.", "et": "Seekord ei juhtunud."}
+CROWD = ("Kai", "Maris", "Jonas", "Lea", "Rasmus", "Mia", "Oskar", "Sofia", "Tom", "Grete", "Leo", "Nora", "Hugo",
+         "Ella", "Ivan", "Zara")
 
 
 @dataclass
@@ -59,6 +83,17 @@ class Predictor:
         self.n = 0
         self.busy_until: tuple[int, float] = (0, -1e9)
         self.asked: set[tuple[int, int]] = set()
+        events = md.events
+        self.moments = {
+            "goal": [(e["period"], e["t"]) for e in events if e["type"] == "shot" and e.get("outcome") == "goal"],
+            "foul": [(e["period"], e["t"]) for e in events if e["type"] == "foul"],
+            "corner": [(e["period"], e["t"]) for e in events
+                       if e["type"] == "out_of_play" and e.get("outcome") == "corner"],
+            "on_target": [(e["period"], e["t"]) for e in events
+                          if e["type"] == "shot" and e.get("outcome") in ("goal", "saved")],
+        }
+        self.rng = random.Random(md.meta.seed)
+        self.next_poll: dict[int, float] = {}
 
     def _free(self, period: int, t: float) -> bool:
         return (period, t) >= self.busy_until
@@ -93,9 +128,27 @@ class Predictor:
         options = [{"id": "yes", "label": YES}, {"id": "no", "label": NO}]
         if shot:
             detail = {lang: SHOT_AT[lang].format(team=name, minute=minute(shot[0])) for lang in SHOT_AT}
-            return self._make("shot_window", period, t, end, shot[0], "yes", question, options, detail)
+            return self._make("shot_window", period, t, t + VOTE_S, shot[0], "yes", question, options, detail)
         detail = {lang: NO_SHOT[lang].format(team=name) for lang in NO_SHOT}
-        return self._make("shot_window", period, t, end, end, "no", question, options, detail)
+        return self._make("shot_window", period, t, t + VOTE_S, end, "no", question, options, detail)
+
+    def poll(self, period: int, t: float, start: float) -> Prediction | None:
+        """Now and then, a random yes or no question the match itself will answer."""
+        due = self.next_poll.setdefault(period, start + 180.0)
+        if t < due or not self._free(period, t):
+            return None
+        self.next_poll[period] = t + self.rng.uniform(*POLL_EVERY_S)
+        kind = self.rng.choice(sorted(POLLS))
+        window, question = POLLS[kind]
+        end = t + window
+        if end > self.period_end[period]:
+            return None
+        options = [{"id": "yes", "label": YES}, {"id": "no", "label": NO}]
+        hit = next((mt for p, mt in self.moments[kind] if p == period and t < mt <= end), None)
+        if hit is not None:
+            detail = {lang: HAPPENED[kind][lang].format(minute=minute(hit)) for lang in MISSED}
+            return self._make(kind, period, t, t + VOTE_S, hit, "yes", question, options, detail)
+        return self._make(kind, period, t, t + VOTE_S, end, "no", question, options, MISSED)
 
     def periodic(self, period: int, t: float, start: float) -> Prediction | None:
         """Every so often, ask who has the next shot."""
@@ -112,3 +165,66 @@ class Predictor:
         options = [{"id": code, "label": {lang: name for lang in ASK_NEXT}} for code, name in self.names.items()]
         detail = {lang: SHOT_AT[lang].format(team=self.names[shot[1]], minute=minute(shot[0])) for lang in SHOT_AT}
         return self._make("next_shot", period, t, t + NEXT_CLOSE_S, shot[0], shot[1], ASK_NEXT, options, detail)
+
+
+@dataclass
+class Fan:
+    name: str
+    skill: float = 0.0
+    points: int = 0
+    streak: int = 0
+    best: int = 0
+    called: int = 0
+    played: int = 0
+    gained: int = 0
+
+
+class Board:
+    """Everyone's calls in one room, scored alike, with a simulated crowd so a lone viewer still has rivals."""
+
+    def __init__(self, seed: int) -> None:
+        self.rng = random.Random(seed)
+        self.fans = {f"crowd_{i}": Fan(name, skill=self.rng.uniform(0.35, 0.7)) for i, name in enumerate(CROWD)}
+        self.votes: dict[str, dict[str, str]] = {}
+        self.open: dict[str, Prediction] = {}
+
+    def opened(self, p: Prediction) -> None:
+        self.open[p.id] = p
+        picks = self.votes.setdefault(p.id, {})
+        wrong = [o["id"] for o in p.prompt["options"] if o["id"] != p.answer]
+        for fan_id, fan in self.fans.items():
+            if fan.skill and self.rng.random() < 0.85:
+                picks[fan_id] = p.answer if self.rng.random() < fan.skill else self.rng.choice(wrong)
+
+    def vote(self, fan: str, name: str, pid: str, option: str, now: tuple[int, float]) -> bool:
+        p = self.open.get(pid)
+        if p is None or now > (p.period, p.closes) or fan in self.votes[pid]:
+            return False
+        full = fan not in self.fans and len(self.fans) >= MAX_FANS
+        if full or option not in [o["id"] for o in p.prompt["options"]]:
+            return False
+        self.fans.setdefault(fan, Fan(name)).name = name
+        self.votes[pid][fan] = option
+        return True
+
+    def settle(self, pid: str) -> dict:
+        p = self.open.pop(pid, None)
+        votes = self.votes.pop(pid, {})
+        for fan in self.fans.values():
+            fan.gained = 0
+        for fan_id, option in votes.items():
+            fan = self.fans[fan_id]
+            won = option == p.answer
+            fan.streak = fan.streak + 1 if won else 0
+            fan.gained = 10 + 5 * (fan.streak - 1) if won else 0
+            fan.points += fan.gained
+            fan.best = max(fan.best, fan.streak)
+            fan.called += won
+            fan.played += 1
+        return self.message(pid)
+
+    def message(self, settled: str | None = None) -> dict:
+        ranked = sorted(self.fans.items(), key=lambda kv: (-kv[1].points, -kv[1].called, kv[1].name))
+        rows = [{"fan": fan_id, "name": f.name, "points": f.points, "streak": f.streak, "best": f.best,
+                 "called": f.called, "played": f.played, "gained": f.gained} for fan_id, f in ranked]
+        return {"kind": "leaderboard", "settled": settled, "rows": rows}

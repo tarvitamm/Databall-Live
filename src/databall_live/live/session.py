@@ -18,7 +18,7 @@ from ..insights.crew import MomentBatch, Timings, build_crew, minute_batches, ru
 from ..insights.foundry import Foundry, settings
 from ..stats.analyse import Analysis, analyse
 from ..stats.season import Season
-from .predictions import Prediction, Predictor
+from .predictions import Board, Prediction, Predictor
 from .store import Bundle, MatchStore, frame_message, state_message
 from .viewer import Viewer
 
@@ -89,7 +89,8 @@ class LiveSession:
         self.crew.switch.mode = "live" if self.control.model else "off"
         ends = {p: end for p, (_, end) in self.b.period_bounds.items()}
         self.predictor = Predictor(self.a.md, self.crew.names.team, ends)
-        self.calls: list[tuple[tuple[int, float], dict]] = []
+        self.board = Board(self.b.md.meta.seed)
+        self.calls: list[tuple[tuple[int, float], Prediction, dict]] = []
         self.timings = Timings()
         self.batches = minute_batches(self.a, LIVE_STEP_S)
         self.next_batch = 0
@@ -229,8 +230,8 @@ class LiveSession:
     def _schedule(self, prediction: Prediction | None) -> None:
         if prediction is None:
             return
-        self.calls.append(((prediction.period, prediction.opens), prediction.prompt))
-        self.calls.append(((prediction.period, prediction.settled), prediction.result))
+        self.calls.append(((prediction.period, prediction.opens), prediction, prediction.prompt))
+        self.calls.append(((prediction.period, prediction.settled), prediction, prediction.result))
         self.calls.sort(key=lambda c: c[0])
 
     @staticmethod
@@ -300,10 +301,21 @@ class LiveSession:
         period, t = self.now
         start = self.b.period_bounds[period][0]
         self._schedule(self.predictor.periodic(period, t, start))
+        self._schedule(self.predictor.poll(period, t, start))
         while self.calls and _before(self.calls[0][0], (period, t)):
-            _, message = self.calls.pop(0)
-            if not self.control.killed:
-                await self.to_viewers(message)
+            _, prediction, message = self.calls.pop(0)
+            if self.control.killed:
+                continue
+            await self.to_viewers(message)
+            if message["kind"] == "prediction":
+                self.board.opened(prediction)
+            else:
+                await self.to_viewers(self.board.settle(prediction.id))
+
+    def vote(self, msg: dict) -> None:
+        fan, name, pid, option = (str(msg.get(k, ""))[:40] for k in ("fan", "name", "id", "option"))
+        if fan and not fan.startswith("crowd_"):
+            self.board.vote(fan, name.strip()[:20] or "Fan", pid, option, self.now)
 
     async def send_history(self, ws: WebSocket, viewer: Viewer, limit: int = 80) -> None:
         """Graphics that already aired and suit this viewer, so joining or switching view never starts empty."""
@@ -431,6 +443,7 @@ class LiveSession:
         if running:
             self.crew_task = asyncio.create_task(self.crew_loop())
         await self.to_viewers({"kind": "clear"})
+        await self.to_viewers(self.board.message())
         self.detect_k = sum(1 for p in self.detections if _before((p.period, p.t_end), self.now))
         await self.to_viewers({"kind": "detect", "items": self.recent_detections(), "count": self.detect_k})
         self.ingest_k = sum(1 for e in self.ingest if _before((e["period"], e["t"]), self.now))

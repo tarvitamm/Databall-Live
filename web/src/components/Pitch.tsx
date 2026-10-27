@@ -6,6 +6,7 @@ import { palette, type Palette } from '../theme'
 const ASPECT = 9 / 16
 const MAX_PAN = 9
 const CAMERA: [number, number, number] = [L / 2, -45, 50]
+const ZOOM_HALF = 15
 
 export interface Tag {
   id: string
@@ -29,6 +30,7 @@ interface Props {
   tags: Tag[]
   trails: Trail[]
   showNames?: boolean
+  zoom?: string
 }
 
 function fit(cam: Camera, width: number, height: number): void {
@@ -43,6 +45,19 @@ function fit(cam: Camera, width: number, height: number): void {
   cam.F = Math.min((width * 1.1) / (right - left), (height * 0.86) / (bottom - top))
   cam.cx = width / 2 - (cam.F * (left + right)) / 2
   cam.cy = height * 0.985 - cam.F * bottom
+}
+
+function close(cam: Camera, at: [number, number], width: number, height: number): void {
+  cam.look([at[0] - 5, at[1] - 30, 20], [at[0], at[1] + 2, 0])
+  cam.F = 1
+  cam.cx = 0
+  cam.cy = 0
+  const [l] = cam.project(at[0] - ZOOM_HALF, at[1], 0)
+  const [r] = cam.project(at[0] + ZOOM_HALF, at[1], 0)
+  cam.F = width / (r - l)
+  const [fx, fy] = cam.project(at[0], at[1], 0)
+  cam.cx = width / 2 - fx
+  cam.cy = height * 0.62 - fy
 }
 
 let crowd: HTMLCanvasElement | null = null
@@ -112,6 +127,7 @@ export function Pitch(props: Props) {
     let raf = 0
     let pan = 0
     let size = ''
+    let focus: [number, number] | null = null
     const cam = new Camera()
     const render = () => {
       raf = requestAnimationFrame(render)
@@ -131,14 +147,22 @@ export function Pitch(props: Props) {
         fit(cam, width, height)
       }
       const state = p.clock.positions(performance.now())
-      const target = state ? Math.max(-MAX_PAN, Math.min(MAX_PAN, (state.ball[0] - L / 2) * 0.22)) : 0
-      pan += (target - pan) * 0.03
-      cam.look(CAMERA, [L / 2 + pan, 32, 0])
+      const spot = p.zoom ? state?.players[p.zoom] : undefined
+      if (spot) {
+        focus = focus ? [focus[0] + (spot[0] - focus[0]) * 0.06, focus[1] + (spot[1] - focus[1]) * 0.06] : spot
+        close(cam, focus, width, height)
+      } else {
+        if (focus) fit(cam, width, height)
+        focus = null
+        const target = state ? Math.max(-MAX_PAN, Math.min(MAX_PAN, (state.ball[0] - L / 2) * 0.22)) : 0
+        pan += (target - pan) * 0.03
+        cam.look(CAMERA, [L / 2 + pan, 32, 0])
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       drawStadium(ctx, cam, colours, width, height)
       drawBoards(ctx, cam, colours)
       drawSurface(ctx, cam, look)
-      drawLines(ctx, cam, look, Math.max(1, cam.F / 900))
+      drawLines(ctx, cam, look, spot ? 1.2 : Math.max(1, cam.F / 900))
       drawGoal(ctx, cam, look, true)
       drawGoal(ctx, cam, look, false)
 
@@ -175,7 +199,7 @@ export function Pitch(props: Props) {
         })
         if (followed || p.showNames) {
           const k = cam.project(man.x, man.y, 0)[2]
-          ctx.font = `600 ${Math.max(10, k * (followed ? 0.9 : 0.7))}px "Google Sans", system-ui, sans-serif`
+          ctx.font = `600 ${Math.min(16, Math.max(10, k * (followed ? 0.9 : 0.7)))}px "Google Sans", system-ui, sans-serif`
           ctx.fillStyle = followed ? colours.ink : 'rgba(255,255,255,0.92)'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'alphabetic'

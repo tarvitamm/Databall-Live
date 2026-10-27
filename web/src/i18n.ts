@@ -58,6 +58,18 @@ const UI = {
     pts: 'pts',
     streak: 'streak',
     yourCalls: 'Your calls',
+    tabs: { feed: 'Feed', fantasy: 'Fantasy', league: 'Predict & win' },
+    fantasy: {
+      yours: 'Your players in this game', pick: 'Star the players in your fantasy team', star: 'In my fantasy team',
+      how: 'Fantasy league rules, plus a point for every two decoy runs. Bonus is provisional until full time.',
+      items: { played: 'Played', goals: 'Goals', assists: 'Assists', clean_sheet: 'Clean sheet', conceded: 'Conceded', defence: 'Defensive work', saves: 'Saves', offball: 'Decoy runs', bonus: 'Bonus' } as Record<string, string>,
+    },
+    board: {
+      prizes: 'Prizes from {club}', prize1: 'Signed matchday shirt', prize2: 'Two tickets to the next home game', prize3: '25% off in the club shop',
+      when: 'Top three at full time win', name: 'Your name', you: 'you', playing: '{n} fans playing in this room', join: 'Answer a poll to get on the board',
+      rank: 'You are #{n}', called: 'called',
+    },
+    playerCam: 'Player cam',
     waitingResult: 'Waiting for the answer',
     missed: 'Missed this one',
     againstSeason: 'Against the season',
@@ -215,6 +227,18 @@ const UI = {
     pts: 'pts',
     streak: 'racha',
     yourCalls: 'Tus predicciones',
+    tabs: { feed: 'Directo', fantasy: 'Fantasy', league: 'Predice y gana' },
+    fantasy: {
+      yours: 'Tus jugadores en este partido', pick: 'Marca con estrella a los jugadores de tu equipo fantasy', star: 'En mi equipo fantasy',
+      how: 'Reglas de liga fantasy, más un punto por cada dos desmarques de arrastre. El bonus es provisional hasta el final.',
+      items: { played: 'Jugado', goals: 'Goles', assists: 'Asistencias', clean_sheet: 'Portería a cero', conceded: 'Encajados', defence: 'Trabajo defensivo', saves: 'Paradas', offball: 'Desmarques de arrastre', bonus: 'Bonus' } as Record<string, string>,
+    },
+    board: {
+      prizes: 'Premios de {club}', prize1: 'Camiseta firmada del partido', prize2: 'Dos entradas para el próximo partido en casa', prize3: '25% de descuento en la tienda del club',
+      when: 'Los tres primeros al final ganan', name: 'Tu nombre', you: 'tú', playing: '{n} aficionados juegan en esta sala', join: 'Responde una encuesta para entrar en la tabla',
+      rank: 'Vas #{n}', called: 'aciertos',
+    },
+    playerCam: 'Cámara del jugador',
     waitingResult: 'Esperando la respuesta',
     missed: 'Te la perdiste',
     againstSeason: 'Frente a la temporada',
@@ -373,6 +397,18 @@ const UI = {
     pts: 'p',
     streak: 'seeria',
     yourCalls: 'Sinu ennustused',
+    tabs: { feed: 'Voog', fantasy: 'Fantasy', league: 'Ennusta ja võida' },
+    fantasy: {
+      yours: 'Sinu mängijad selles mängus', pick: 'Märgi tärniga oma fantasy meeskonna mängijad', star: 'Minu fantasy meeskonnas',
+      how: 'Fantasy liiga reeglid, lisaks punkt iga kahe peibutusjooksu eest. Boonus on esialgne kuni lõpuvileni.',
+      items: { played: 'Mängis', goals: 'Väravad', assists: 'Väravasöödud', clean_sheet: 'Puhas leht', conceded: 'Lastud väravad', defence: 'Kaitsetöö', saves: 'Tõrjed', offball: 'Peibutusjooksud', bonus: 'Boonus' } as Record<string, string>,
+    },
+    board: {
+      prizes: '{club} auhinnad', prize1: 'Allkirjastatud mängusärk', prize2: 'Kaks piletit järgmisele kodumängule', prize3: '25% soodustust klubipoes',
+      when: 'Lõpuvilega võidavad kolm parimat', name: 'Sinu nimi', you: 'sina', playing: 'Selles toas mängib {n} fänni', join: 'Vasta küsitlusele, et tabelisse pääseda',
+      rank: 'Oled #{n}', called: 'õigesti',
+    },
+    playerCam: 'Mängija kaamera',
     waitingResult: 'Ootame vastust',
     missed: 'See jäi vahele',
     againstSeason: 'Võrreldes hooajaga',
@@ -492,4 +528,8 @@ export function clock(period: number, t: number): string {
   const minute = Math.floor(t / 60)
   if (minute >= base) return `${base}+${minute - base + 1}'`
   return `${minute + 1}'`
+}
+
+export function fill(text: string, values: Record<string, string | number>): string {
+  return text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k] ?? ''))
 }

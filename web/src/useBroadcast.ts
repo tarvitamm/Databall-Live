@@ -9,6 +9,7 @@ import type {
   EventsMsg,
   FrameMsg,
   HistoryMsg,
+  LeaderboardMsg,
   MatchDetail,
   Packet,
   Prediction,
@@ -34,15 +35,24 @@ export interface Score {
   last?: { id: string; won: boolean; gained: number }
 }
 
-const EMPTY_SCORE: Score = { points: 0, streak: 0, best: 0, called: 0, played: 0 }
+export interface Fan {
+  id: string
+  name: string
+}
 
-function loadScore(): Score {
+function loadFan(): Fan {
   try {
-    const saved = localStorage.getItem('databall.score')
-    return saved ? { ...EMPTY_SCORE, ...(JSON.parse(saved) as Score), last: undefined } : EMPTY_SCORE
+    const saved = localStorage.getItem('databall.fan')
+    if (saved) return JSON.parse(saved) as Fan
   } catch {
-    return EMPTY_SCORE
+    // private windows have no storage, so the fan stays anonymous for this visit
   }
+  return { id: crypto.randomUUID(), name: `Fan ${Math.floor(1000 + Math.random() * 9000)}` }
+}
+
+/** Votes are taken until the poll closes on the match clock. */
+export function isOpen(call: Call, now: { period: number; t: number }): boolean {
+  return !call.result && (now.period < call.prompt.period || (now.period === call.prompt.period && now.t <= call.prompt.closes))
 }
 
 type Timed<T> = T & { period: number; expires: number }
@@ -83,20 +93,16 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
   const [events, setEvents] = useState<{ items: EventItem[]; count: number }>({ items: [], count: 0 })
   const [calls, setCalls] = useState<Record<string, Call>>({})
   const [picks, setPicks] = useState<Record<string, string>>({})
-  const picksRef = useRef(picks)
-  const [score, setScore] = useState<Score>(loadScore)
-
-  useEffect(() => {
-    picksRef.current = picks
-  }, [picks])
+  const [board, setBoard] = useState<LeaderboardMsg | null>(null)
+  const [fan, setFan] = useState<Fan>(loadFan)
 
   useEffect(() => {
     try {
-      localStorage.setItem('databall.score', JSON.stringify({ ...score, last: undefined }))
+      localStorage.setItem('databall.fan', JSON.stringify(fan))
     } catch {
       return
     }
-  }, [score])
+  }, [fan])
 
   useEffect(() => {
     startProfile.current = profile
@@ -178,22 +184,8 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
       } else if (msg.kind === 'prediction_result') {
         const m = msg as PredictionResult
         setCalls((all) => (all[m.id] ? { ...all, [m.id]: { ...all[m.id], result: m, settledAt: Date.now() } } : all))
-        const pick = picksRef.current[m.id]
-        if (pick) {
-          setScore((sc) => {
-            const won = pick === m.answer
-            const streak = won ? sc.streak + 1 : 0
-            const gained = won ? 10 + 5 * (streak - 1) : 0
-            return {
-              points: sc.points + gained,
-              streak,
-              best: Math.max(sc.best, streak),
-              called: sc.called + (won ? 1 : 0),
-              played: sc.played + 1,
-              last: { id: m.id, won, gained },
-            }
-          })
-        }
+      } else if (msg.kind === 'leaderboard') {
+        setBoard(msg as LeaderboardMsg)
       } else if (msg.kind === 'clear') {
         clear()
         setFeed([])
@@ -217,6 +209,15 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
   }, [profile])
 
   const control = (msg: object) => stream.current?.send({ kind: 'control', ...msg })
+  const me = board?.rows.find((r) => r.fan === fan.id)
+  const score: Score = {
+    points: me?.points ?? 0,
+    streak: me?.streak ?? 0,
+    best: me?.best ?? 0,
+    called: me?.called ?? 0,
+    played: me?.played ?? 0,
+    last: me && board?.settled ? { id: board.settled, won: me.gained > 0, gained: me.gained } : undefined,
+  }
 
   return {
     clock,
@@ -234,8 +235,15 @@ export function useBroadcast(match: MatchDetail | null, room: string, profile: P
     events,
     calls: Object.values(calls).sort((a, b) => b.prompt.period - a.prompt.period || b.prompt.opens - a.prompt.opens),
     picks,
-    pick: (id: string, option: string) => setPicks((all) => (all[id] ? all : { ...all, [id]: option })),
+    pick: (id: string, option: string) => {
+      if (picks[id]) return
+      setPicks((all) => ({ ...all, [id]: option }))
+      stream.current?.send({ kind: 'vote', id, option, fan: fan.id, name: fan.name })
+    },
     score,
+    board,
+    fan,
+    rename: (name: string) => setFan((f) => ({ ...f, name: name.slice(0, 20) })),
     play: () => control({ action: 'play' }),
     pause: () => control({ action: 'pause' }),
     setSpeed: (value: number) => control({ action: 'speed', value }),

@@ -3,12 +3,14 @@ import { api } from '../api'
 import { clock, stateLabel, type Strings } from '../i18n'
 import type { PitchMaps } from '../pitchMaps'
 import type { CatchUp, Lang, MatchDetail, Metric, Packet, PlayerStats } from '../types'
-import type { Broadcast } from '../useBroadcast'
+import { isOpen, type Broadcast } from '../useBroadcast'
 import { useLive } from '../useLive'
 import { badgeFor } from '../badges'
-import { Badge, CallsList, PredictionPopup, ResultPopup, ScoreChip } from './Engage'
+import { Badge, CallsList, LeaguePanel, PredictionPopup, ResultPopup, ScoreChip } from './Engage'
+import { FantasyPanel } from './Fantasy'
 import { CloseIcon, Mark, ReplayIcon, ShareIcon } from './Icons'
 import { ShareSheet } from './Moments'
+import { Pitch } from './Pitch'
 import { Scene } from './Scene'
 
 const POPUP_MS = 8000
@@ -156,7 +158,7 @@ function Phone({ path, children }: { path: string; children: ReactNode }) {
   )
 }
 
-function MobileApp({ match, b, maps, s, lang, path, top }: AppProps & { path: string; top: ReactNode }) {
+function MobileApp({ match, b, maps, s, lang, path, top, body }: AppProps & { path: string; top: ReactNode; body?: ReactNode }) {
   const now = useTick(500)
   const [open, setOpen] = useState<string | null>(null)
   const [sharing, setSharing] = useState<Packet | null>(null)
@@ -165,7 +167,7 @@ function MobileApp({ match, b, maps, s, lang, path, top }: AppProps & { path: st
   const latest = b.recap ?? b.feed[0]
   const insight = latest && !dismissed.has(latest.packet) && now - (latest.received ?? 0) < POPUP_MS ? latest : null
   const settled = b.calls.find((c) => c.result && b.picks[c.prompt.id] && now - (c.settledAt ?? 0) < POPUP_MS && !dismissed.has(`r${c.prompt.id}`))
-  const asking = b.calls.find((c) => !c.result && !dismissed.has(`p${c.prompt.id}`) && (!b.picks[c.prompt.id] || now - c.received < 2500))
+  const asking = b.calls.find((c) => isOpen(c, b.now) && !dismissed.has(`p${c.prompt.id}`) && (!b.picks[c.prompt.id] || now - c.received < 2500))
   const replay = (p: Packet) => {
     setOpen(p.packet)
     hide(p.packet)
@@ -189,10 +191,14 @@ function MobileApp({ match, b, maps, s, lang, path, top }: AppProps & { path: st
       <Hero match={match} b={b} s={s} />
       <div className="app-body">
         {top}
-        <CallsList b={b} s={s} lang={lang} />
-        <h5 className="app-section">{s.yourFeed}</h5>
-        {b.feed.length === 0 && !b.recap && <p className="app-empty">{s.noInsights}</p>}
-        {[...(b.recap ? [b.recap] : []), ...b.feed].map((p) => (
+        {body ?? (
+          <>
+            <CallsList b={b} s={s} lang={lang} />
+            <h5 className="app-section">{s.yourFeed}</h5>
+            {b.feed.length === 0 && !b.recap && <p className="app-empty">{s.noInsights}</p>}
+          </>
+        )}
+        {!body && [...(b.recap ? [b.recap] : []), ...b.feed].map((p) => (
           <FeedCard
             key={p.packet}
             p={p}
@@ -312,9 +318,22 @@ export function FanApp({ club, onClub, metric, onMetric, ...props }: AppProps & 
 }) {
   const { match, b, s } = props
   const [catchUp, setCatchUp] = useState(false)
+  const [tab, setTab] = useState<'feed' | 'fantasy' | 'league'>('feed')
   const ticker = b.tags[0]?.text ?? b.cards[0]?.text.headline
+  const tabs = (
+    <div className="app-tabs" role="tablist">
+      {(['feed', 'fantasy', 'league'] as const).map((k) => (
+        <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+          {s.tabs[k]}
+        </button>
+      ))}
+    </div>
+  )
+  if (tab === 'fantasy') return <MobileApp {...props} path={`fantasy/${match.id}`} top={tabs} body={<FantasyPanel match={match} now={b.now} maps={props.maps} s={s} />} />
+  if (tab === 'league') return <MobileApp {...props} path={`predict/${match.id}`} top={tabs} body={<LeaguePanel match={match} b={b} s={s} lang={props.lang} />} />
   const top = (
     <>
+      {tabs}
       <div className="app-chips">
         {['', match.home.code, match.away.code].map((code) => (
           <button key={code || 'all'} className={club === code ? 'on' : ''} onClick={() => onClub(code)}>
@@ -393,6 +412,13 @@ export function PlayerApp({ player, onPlayer, ...props }: AppProps & { player: s
           </div>
         </div>
       )}
+      <div className="player-cam">
+        <Pitch clock={b.clock} {...props.maps} followed={[player]} highlight={[]} tags={[]} trails={[]} zoom={player} />
+        <span className="cam-chip">
+          <i />
+          {s.playerCam}
+        </span>
+      </div>
       {stats && (
         <>
           <div className="player-strip">

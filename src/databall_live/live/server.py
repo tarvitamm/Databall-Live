@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from ..contracts import ViewerProfile
 from ..stats.kinematics import count_sprints
 from ..stats.season import Season
+from .fantasy import fantasy
 from .session import TRANSPORT, Sessions
 from .store import Bundle, MatchStore, frame_message, match_state, state_message
 from .talk import talking_points as season_talk
@@ -183,6 +184,13 @@ def live_numbers(match_id: str, period: int, t: float) -> dict:
     return {"teams": teams, "leaders": leaders, "rhythm": rhythm}
 
 
+@app.get("/api/matches/{match_id}/fantasy")
+def fantasy_points(match_id: str, period: int, t: float) -> list[dict]:
+    """Live fantasy points for every player in the match."""
+    b = _bundle(match_id)
+    return fantasy(b.md, b.goals, b.patterns, period, t, {p: start for p, (start, _) in b.period_bounds.items()})
+
+
 @app.get("/api/matches/{match_id}/compare")
 def compare(match_id: str, period: int, t: float) -> dict:
     """Each team so far against its season average, scaled to the minutes played for counting stats."""
@@ -321,6 +329,7 @@ async def live_viewer(ws: WebSocket, match_id: str) -> None:
         await ws.send_json(state_message(session.b, period, t))
         await ws.send_json({"kind": "detect", "items": session.recent_detections(), "count": session.detect_k})
         await ws.send_json({"kind": "events", "items": session.recent_events(), "count": session.ingest_k})
+        await ws.send_json(session.board.message())
         await session.send_history(ws, viewer)
         session.viewers[ws] = viewer
         while True:
@@ -330,6 +339,8 @@ async def live_viewer(ws: WebSocket, match_id: str) -> None:
                                                                   if k in ViewerProfile.model_fields})
                 viewer.reset()
                 await session.send_history(ws, viewer)
+            elif msg.get("kind") == "vote":
+                session.vote(msg)
             elif msg.get("kind") == "control" and msg.get("action") in TRANSPORT:
                 await session.command(msg)
     except WebSocketDisconnect:

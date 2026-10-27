@@ -4,7 +4,8 @@ import pytest
 
 from databall_live.contracts import ViewerProfile
 from databall_live.insights.pipeline import run, save
-from databall_live.live.predictions import Predictor
+from databall_live.live.fantasy import fantasy
+from databall_live.live.predictions import POLLS, Predictor
 from databall_live.live.session import LiveSession
 from databall_live.live.store import MatchStore
 from databall_live.live.viewer import Viewer
@@ -145,6 +146,44 @@ def test_viewers_get_prompts_before_results(match):
     for kind, pid in kinds:
         if kind == "prediction_result":
             assert ("prediction", pid) in kinds[:kinds.index((kind, pid))]
+
+
+def test_polls_score_everyone_in_the_room(match):
+    session, viewer, _ = session_with_audience(match)
+    voted: set[str] = set()
+
+    async def run() -> None:
+        end = len(session.b.md.t) - 1
+        while session.k < end:
+            await session._predictions()
+            for m in viewer.out:
+                if m["kind"] == "prediction" and m["id"] not in voted:
+                    voted.add(m["id"])
+                    session.vote({"fan": "me", "name": "Me", "id": m["id"], "option": m["options"][0]["id"]})
+            session.k += 25
+
+    asyncio.run(run())
+    questions = {q["en"] for _, q in POLLS.values()}
+    assert any(m["question"]["en"] in questions for m in viewer.out if m["kind"] == "prediction")
+    board = [m for m in viewer.out if m["kind"] == "leaderboard"][-1]
+    me = next(r for r in board["rows"] if r["fan"] == "me")
+    settled = {m["id"] for m in viewer.out if m["kind"] == "prediction_result"}
+    assert me["played"] == len(voted & settled) > 0
+    assert len(board["rows"]) > 1 and board["rows"] == sorted(board["rows"], key=lambda r: -r["points"])
+    session.vote({"fan": "crowd_0", "name": "x", "id": "pr_1", "option": "yes"})
+
+
+def test_fantasy_points_follow_the_match(match):
+    bundle, _ = match
+    starts = {p: start for p, (start, _) in bundle.period_bounds.items()}
+    period, t, _, scorer = bundle.goals[0]
+    before = {r["id"]: r for r in fantasy(bundle.md, bundle.goals, bundle.patterns, period, t - 1, starts)}
+    after = fantasy(bundle.md, bundle.goals, bundle.patterns, period, t, starts)
+    row = next(r for r in after if r["id"] == scorer)
+    assert any(k == "goals" and n == 1 for k, n, _ in row["items"])
+    assert row["points"] > before[scorer]["points"]
+    assert [r["points"] for r in after] == sorted((r["points"] for r in after), reverse=True)
+    assert sum(1 for r in after if any(k == "bonus" for k, _, _ in r["items"])) == 3
 
 
 def test_events_stream_with_pass_quality_and_possession(match):

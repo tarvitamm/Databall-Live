@@ -129,6 +129,31 @@ export interface PredictionResult {
   detail: Record<string, string>
 }
 
+export interface BoardRow {
+  fan: string
+  name: string
+  points: number
+  streak: number
+  best: number
+  called: number
+  played: number
+  gained: number
+}
+
+export interface LeaderboardMsg {
+  kind: 'leaderboard'
+  settled: string | null
+  rows: BoardRow[]
+}
+
+export interface FantasyRow {
+  id: string
+  team: string
+  role: string
+  points: number
+  items: [string, number, number][]
+}
+
 export interface CatchUp {
   score: Record<string, number>
   xg: Record<string, number>
@@ -211,4 +236,4 @@ export interface HistoryMsg {
   packets: Packet[]
 }
 
-export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | DetectMsg | EventsMsg | Prediction | PredictionResult | { kind: 'end' | 'clear' }
+export type ServerMsg = FrameMsg | Packet | StateMsg | TransportMsg | HistoryMsg | DetectMsg | EventsMsg | Prediction | PredictionResult | LeaderboardMsg | { kind: 'end' | 'clear' }

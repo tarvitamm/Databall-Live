@@ -1,4 +1,4 @@
-import type { Strings } from './i18n'
+import { fill, type Strings } from './i18n'
 import type { PitchMaps } from './pitchMaps'
 import type { FrameMsg, Lang, MatchDetail, Packet } from './types'
 
@@ -51,10 +51,6 @@ const dist = (a: P2, b: P2) => Math.hypot(a[0] - b[0], a[1] - b[1])
 function fmt(v: number, lang: Lang, d = 0): string {
   const text = v.toFixed(d)
   return lang === 'en' ? text : text.replace('.', ',')
-}
-
-function fill(text: string, values: Record<string, string | number>): string {
-  return text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k] ?? ''))
 }
 
 function tone(team: number): Tone {
