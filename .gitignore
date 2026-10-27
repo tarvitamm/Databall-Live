@@ -14,8 +14,6 @@ data/
 .ruff_cache/
 .pytest_cache/
 
-
-
 # Local settings and credentials, never committed
 .env
 .env.*

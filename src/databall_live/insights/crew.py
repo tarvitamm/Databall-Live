@@ -50,7 +50,7 @@ from .foundry import Foundry, ModelOff, Switch
 from .producer import TAG_SLOT, Scheduler
 from .recapper import RecapWriter
 from .storyteller import Names, Variant, describe, describe_lang, render_all
-from .text import LANGS
+from .text import LANGS, MODEL_GROUPS
 from .tools import MatchTools
 from .verifier import verify, verify_explanation, verify_translation
 from .writer import ModelWriter
@@ -318,7 +318,9 @@ class Storyteller(Executor):
     async def write(self, edited: Edited, ctx: WorkflowContext[Lines, CrewNote]) -> None:
         for d in edited.drafts:
             d.insight.model.storyteller = "template"
-        pairs = [(d, render_all(d, self.names, self.langs), None) for d in edited.drafts]
+        pairs = [(d, [v for v in render_all(d, self.names, self.langs) if v.lang in group], None)
+                 for d in edited.drafts for group in MODEL_GROUPS]
+        pairs = [p for p in pairs if p[1]]
         variants, notes = await self._write(pairs)
         for note in notes:
             await ctx.yield_output(note)

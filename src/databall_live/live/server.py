@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from ..contracts import ViewerProfile
+from ..insights.text import LANGS
 from ..stats.kinematics import count_sprints
 from ..stats.season import Season
 from .commentary import TEXT, commentary
@@ -131,7 +132,7 @@ def _player_season(s: Season, pid: str) -> dict | None:
 def talking_points(match_id: str, lang: str = "en") -> list[str]:
     """Season facts for commentary, ready before kick-off."""
     b = _bundle(match_id)
-    return season_talk(b.md, _season(b), lang if lang in ("en", "es", "et") else "en")
+    return season_talk(b.md, _season(b), lang if lang in LANGS else "en")
 
 
 @app.get("/api/matches/{match_id}/live")

@@ -17,7 +17,7 @@ from .foundry import Foundry, ModelOff, Switch
 from .storyteller import Names, Variant, localize
 from .verifier import MAX_BODY, MAX_HEADLINE
 
-LANG_NAME = {"en": "English", "es": "Spanish", "et": "Estonian"}
+LANG_NAME = {"en": "English", "es": "Spanish", "et": "Estonian", "de": "German", "fr": "French"}
 PERSONA_STYLE = {
     "analyst": "for analysts and coaches: precise and comparative. Lead with the mechanism, keep the key numbers with "
                "units, and compare with the season average or the previous value whenever the facts include one",

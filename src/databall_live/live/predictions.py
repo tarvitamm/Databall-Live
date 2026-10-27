@@ -22,42 +22,62 @@ TRIGGERS = {"pressure_shift", "momentum_swing", "between_lines_gap", "overload",
 
 REASON = {
     "pressure_shift": {"en": "{team} are pressing harder.", "es": "{team} aprietan más arriba.",
-                       "et": "{team} pressib nüüd kõvemini."},
+                       "et": "{team} pressib nüüd kõvemini.",
+                       "de": "{team} presst jetzt härter.", "fr": "{team} presse plus fort."},
     "momentum_swing": {"en": "{team} have the momentum.", "es": "{team} tienen el impulso.",
-                       "et": "{team} on hoo sisse saanud."},
+                       "et": "{team} on hoo sisse saanud.",
+                       "de": "{team} hat das Momentum.", "fr": "{team} a pris l’ascendant."},
     "between_lines_gap": {"en": "{team} are finding space between the lines.",
-                          "es": "{team} encuentran espacio entre líneas.", "et": "{team} leiab liinide vahelt ruumi."},
+                          "es": "{team} encuentran espacio entre líneas.", "et": "{team} leiab liinide vahelt ruumi.",
+                          "de": "{team} findet Raum zwischen den Ketten.",
+                          "fr": "{team} trouve de l’espace entre les lignes."},
     "overload": {"en": "{team} have numbers around the ball.", "es": "{team} tienen superioridad cerca del balón.",
-                 "et": "{team} on palli ümber ülekaalus."},
+                 "et": "{team} on palli ümber ülekaalus.",
+                 "de": "{team} hat Überzahl am Ball.", "fr": "{team} est en surnombre autour du ballon."},
     "counter_press": {"en": "{team} are winning it back high.", "es": "{team} recuperan arriba.",
-                      "et": "{team} võidab palli kõrgel tagasi."},
+                      "et": "{team} võidab palli kõrgel tagasi.",
+                      "de": "{team} erobert den Ball weit vorne zurück.", "fr": "{team} récupère le ballon haut."},
 }
 ASK_SHOT = {"en": "Shot in the next 5 minutes?", "es": "¿Remate en los próximos 5 minutos?",
-            "et": "Kas löök tuleb järgmise 5 minuti jooksul?"}
-ASK_NEXT = {"en": "Who has the next shot?", "es": "¿Quién remata primero?", "et": "Kes lööb järgmisena?"}
-YES = {"en": "Yes", "es": "Sí", "et": "Jah"}
-NO = {"en": "No", "es": "No", "et": "Ei"}
-SHOT_AT = {"en": "{team} shot at {minute}.", "es": "{team} remató en el {minute}.", "et": "{team}: löök {minute}."}
+            "et": "Kas löök tuleb järgmise 5 minuti jooksul?",
+            "de": "Schuss in den nächsten 5 Minuten?", "fr": "Un tir dans les 5 prochaines minutes ?"}
+ASK_NEXT = {"en": "Who has the next shot?", "es": "¿Quién remata primero?", "et": "Kes lööb järgmisena?",
+            "de": "Wer schießt als Nächstes?", "fr": "Qui tirera le prochain ?"}
+YES = {"en": "Yes", "es": "Sí", "et": "Jah", "de": "Ja", "fr": "Oui"}
+NO = {"en": "No", "es": "No", "et": "Ei", "de": "Nein", "fr": "Non"}
+SHOT_AT = {"en": "{team} shot at {minute}.", "es": "{team} remató en el {minute}.", "et": "{team}: löök {minute}.",
+           "de": "{team}: Schuss, {minute}.", "fr": "{team} : tir, {minute}."}
 NO_SHOT = {"en": "No {team} shot in the 5 minutes.", "es": "{team} no remató en esos 5 minutos.",
-           "et": "{team} ei löönud 5 minuti jooksul."}
+           "et": "{team} ei löönud 5 minuti jooksul.",
+           "de": "Kein Schuss von {team} in den 5 Minuten.", "fr": "Aucun tir de {team} en 5 minutes."}
 POLLS = {
     "goal": (600.0, {"en": "Goal in the next 10 minutes?", "es": "¿Gol en los próximos 10 minutos?",
-                     "et": "Kas järgmise 10 minuti jooksul tuleb värav?"}),
+                     "et": "Kas järgmise 10 minuti jooksul tuleb värav?",
+                     "de": "Tor in den nächsten 10 Minuten?", "fr": "Un but dans les 10 prochaines minutes ?"}),
     "foul": (180.0, {"en": "Foul in the next 3 minutes?", "es": "¿Falta en los próximos 3 minutos?",
-                     "et": "Kas järgmise 3 minuti jooksul tuleb vabalöök?"}),
+                     "et": "Kas järgmise 3 minuti jooksul tuleb vabalöök?",
+                     "de": "Foul in den nächsten 3 Minuten?", "fr": "Une faute dans les 3 prochaines minutes ?"}),
     "corner": (300.0, {"en": "Corner in the next 5 minutes?", "es": "¿Córner en los próximos 5 minutos?",
-                       "et": "Kas järgmise 5 minuti jooksul tuleb nurgalöök?"}),
+                       "et": "Kas järgmise 5 minuti jooksul tuleb nurgalöök?",
+                       "de": "Ecke in den nächsten 5 Minuten?", "fr": "Un corner dans les 5 prochaines minutes ?"}),
     "on_target": (300.0, {"en": "Shot on target in the next 5 minutes?",
                           "es": "¿Remate a puerta en los próximos 5 minutos?",
-                          "et": "Kas järgmise 5 minuti jooksul tuleb löök väravale?"}),
+                          "et": "Kas järgmise 5 minuti jooksul tuleb löök väravale?",
+                          "de": "Schuss aufs Tor in den nächsten 5 Minuten?",
+                          "fr": "Un tir cadré dans les 5 prochaines minutes ?"}),
 }
 HAPPENED = {
-    "goal": {"en": "Goal at {minute}.", "es": "Gol en el {minute}.", "et": "Värav {minute}."},
-    "foul": {"en": "Foul at {minute}.", "es": "Falta en el {minute}.", "et": "Vabalöök {minute}."},
-    "corner": {"en": "Corner at {minute}.", "es": "Córner en el {minute}.", "et": "Nurgalöök {minute}."},
-    "on_target": {"en": "On target at {minute}.", "es": "A puerta en el {minute}.", "et": "Löök väravale {minute}."},
+    "goal": {"en": "Goal at {minute}.", "es": "Gol en el {minute}.", "et": "Värav {minute}.",
+             "de": "Tor, {minute}.", "fr": "But, {minute}."},
+    "foul": {"en": "Foul at {minute}.", "es": "Falta en el {minute}.", "et": "Vabalöök {minute}.",
+             "de": "Foul, {minute}.", "fr": "Faute, {minute}."},
+    "corner": {"en": "Corner at {minute}.", "es": "Córner en el {minute}.", "et": "Nurgalöök {minute}.",
+               "de": "Ecke, {minute}.", "fr": "Corner, {minute}."},
+    "on_target": {"en": "On target at {minute}.", "es": "A puerta en el {minute}.", "et": "Löök väravale {minute}.",
+                  "de": "Aufs Tor, {minute}.", "fr": "Cadré, {minute}."},
 }
-MISSED = {"en": "It did not happen this time.", "es": "Esta vez no pasó.", "et": "Seekord ei juhtunud."}
+MISSED = {"en": "It did not happen this time.", "es": "Esta vez no pasó.", "et": "Seekord ei juhtunud.",
+          "de": "Diesmal ist es nicht passiert.", "fr": "Cette fois, ça ne s’est pas produit."}
 CROWD = ("Kai", "Maris", "Jonas", "Lea", "Rasmus", "Mia", "Oskar", "Sofia", "Tom", "Grete", "Leo", "Nora", "Hugo",
          "Ella", "Ivan", "Zara")
 

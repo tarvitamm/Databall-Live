@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 from .cache import Cache
 from .explainer import PROMPT_VERSION, clean, parse
 from .foundry import Foundry, ModelOff, Switch
+from .text import MODEL_GROUPS
 from .verifier import NUMBER, verify_numbers
 from .writer import LANG_NAME
 
@@ -53,6 +55,17 @@ class RecapWriter:
 
     async def write(self, moment: str, references: Texts) -> tuple[Texts, str, list[str]]:
         """Recap lines for every reference, the source, and why any line fell back to its reference."""
+        groups = [{k: v for k, v in references.items() if k[0] in g} for g in MODEL_GROUPS]
+        results = await asyncio.gather(*(self._write(moment, g) for g in groups if g), return_exceptions=True)
+        done = [r for r in results if not isinstance(r, BaseException)]
+        if not done:
+            raise next(r for r in results if isinstance(r, BaseException))
+        out: Texts = dict(references)
+        for texts, _, _ in done:
+            out.update(texts)
+        return out, done[0][1], [p for _, _, problems in done for p in problems]
+
+    async def _write(self, moment: str, references: Texts) -> tuple[Texts, str, list[str]]:
         refs = [{"lang": lang, "language": LANG_NAME[lang], "persona": persona, "reference_headline": h,
                  "reference_body": b} for (lang, persona), (h, b) in sorted(references.items())]
         key = Cache.key("recap", [PROMPT_VERSION, self.foundry.model, INSTRUCTIONS, moment, refs])

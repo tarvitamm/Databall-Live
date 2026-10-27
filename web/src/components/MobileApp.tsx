@@ -338,7 +338,7 @@ export function FanApp({ club, onClub, metric, onMetric, ...props }: AppProps & 
         top={tabs}
         body={
           <>
-            <EventMaps match={match} now={b.now} maps={props.maps} s={s} />
+            <EventMaps match={match} now={b.now} maps={props.maps} s={s} lang={props.lang} />
             <LiveText match={match} now={b.now} feed={b.feed} s={s} lang={props.lang} />
           </>
         }

@@ -11,10 +11,14 @@ from .templates import T
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 AHEAD_WORDS = {"en": r"\b(ahead|in front|lead|leads|leading)\b",
                "es": r"\b(adelant\w*|por delante|ventaja|ganando)\b",
-               "et": r"\b(juhtima|juhib|juhtimas|eduseis\w*|edu)\b"}
+               "et": r"\b(juhtima|juhib|juhtimas|eduseis\w*|edu)\b",
+               "de": r"\b(führ\w*|vorn\w*)\b",
+               "fr": r"\b(mène\w*|avantage|devant)\b"}
 LEVEL_WORDS = {"en": r"\b(level|levels|equalis\w*|equaliz\w*|draw|tied?)\b",
                "es": r"\b(empat\w*|iguala\w*)\b",
-               "et": r"\b(viik\w*|viigi\w*|egaliseeri\w*)\b"}
+               "et": r"\b(viik\w*|viigi\w*|egaliseeri\w*)\b",
+               "de": r"\b(ausgleich\w*|gleichstand|unentschieden)\b",
+               "fr": r"\b(égalis\w*|égalité)\b"}
 MAX_HEADLINE = 48
 MAX_BODY = 150
 MAX_ANALYST_BODY = 180

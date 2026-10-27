@@ -52,11 +52,12 @@ function PitchLines() {
   )
 }
 
-function summary(kind: MapKind, m: TeamMaps, s: Strings, maps: PitchMaps): string {
+function summary(kind: MapKind, m: TeamMaps, s: Strings, maps: PitchMaps, lang: Lang): string {
   const t = s.centre.sum
   if (kind === 'shots') {
     const xg = m.shots.reduce((a, x) => a + x[2], 0)
-    return fill(t.shots, { n: m.shots.length, xg: xg.toFixed(2), g: m.shots.filter((x) => x[3] === 'goal').length })
+    const v = lang === 'en' ? xg.toFixed(2) : xg.toFixed(2).replace('.', ',')
+    return fill(t.shots, { n: m.shots.length, xg: v, g: m.shots.filter((x) => x[3] === 'goal').length })
   }
   if (kind === 'passes') return fill(t.passes, { n: m.passes.length, pct: pct(m.passes.filter((x) => x[4]).length, m.passes.length) })
   if (kind === 'dribbles') {
@@ -118,7 +119,7 @@ const LEGEND: Partial<Record<MapKind, string[]>> = {
   defending: ['interception', 'clearance', 'ball_recovery'],
 }
 
-export function EventMaps({ match, now, maps, s }: { match: MatchDetail; now: Now; maps: PitchMaps; s: Strings }) {
+export function EventMaps({ match, now, maps, s, lang }: { match: MatchDetail; now: Now; maps: PitchMaps; s: Strings; lang: Lang }) {
   const data = useMaps(match, now)
   const [team, setTeam] = useState(match.home.code)
   const [kind, setKind] = useState<MapKind>('shots')
@@ -156,7 +157,7 @@ export function EventMaps({ match, now, maps, s }: { match: MatchDetail; now: No
           </span>
         ))}
       </div>
-      <p className="map-sum">{m ? summary(kind, m, s, maps) : s.centre.none}</p>
+      <p className="map-sum">{m ? summary(kind, m, s, maps, lang) : s.centre.none}</p>
     </section>
   )
 }

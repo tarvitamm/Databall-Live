@@ -14,8 +14,8 @@ import { useBroadcast } from './useBroadcast'
 import { InputPanel, OverlayView } from './views'
 
 const VIEWS: View[] = ['fan', 'analyst', 'player', 'producer']
-const LANGS: Lang[] = ['en', 'es', 'et']
-const LANG_NAMES: Record<Lang, string> = { en: 'English', es: 'Español', et: 'Eesti' }
+const LANGS: Lang[] = ['en', 'es', 'de', 'fr', 'et']
+const LANG_NAMES: Record<Lang, string> = { en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français', et: 'Eesti' }
 const SPEEDS = [1, 2, 5, 10]
 const STAR = 'HAR_7'
 

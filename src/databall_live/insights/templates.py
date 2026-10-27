@@ -16,6 +16,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{team}: kõrgem press", "Survestusi minutis {pa} (enne {pb}), kaitseliin {la} m (enne {lb} m). Eestvedajad: {leaders}."),
                "fan": ("{team} pressib nüüd kõrgelt", "{team} ründab palli juba vastase poolel. Eest veavad {leaders}."),
                "player_focus": ("{focus} veab pressi", "{focus}: {fn} survestust viimase 10 minutiga.")},
+        "de": {"analyst": ("{team}: mehr Pressing", "Pressingaktionen pro Min. {pa} (vorher {pb}), Linie {la} m (vorher {lb} m). Angeführt von {leaders}."),
+               "fan": ("{team} jagt den Ball", "{team} presst jetzt hoch und früh. {leaders} gehen voran."),
+               "player_focus": ("{focus} führt das Pressing an", "{focus} hat {fn} Pressingaktionen in den letzten 10 Minuten.")},
+        "fr": {"analyst": ("{team} : pressing plus fort", "Pressions par min {pa} (avant {pb}), ligne à {la} m (avant {lb} m). Menées par {leaders}."),
+               "fan": ("{team} chasse le ballon", "{team} presse désormais haut et tôt. {leaders} mènent la charge."),
+               "player_focus": ("{focus} mène le pressing", "{focus} compte {fn} pressions sur les 10 dernières minutes.")},
     },
     "pressure_softer": {
         "en": {"analyst": ("{team}: pressing less", "Pressures per min {pa} (was {pb}), line {la} m (was {lb} m)."),
@@ -24,6 +30,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{team} dan un paso atrás", "{team} esperan más atrás y ceden el balón a {opp}.")},
         "et": {"analyst": ("{team}: madalam press", "Survestusi minutis {pa} (enne {pb}), kaitseliin {la} m (enne {lb} m)."),
                "fan": ("{team} taandus sügavamale", "{team} ootab nüüd tagapool ja annab palli vastasele.")},
+        "de": {"analyst": ("{team}: weniger Pressing", "Pressingaktionen pro Min. {pa} (vorher {pb}), Linie {la} m (vorher {lb} m)."),
+               "fan": ("{team} zieht sich zurück", "{team} steht tiefer und überlässt {opp} den Ball.")},
+        "fr": {"analyst": ("{team} : moins de pressing", "Pressions par min {pa} (avant {pb}), ligne à {la} m (avant {lb} m)."),
+               "fan": ("{team} recule", "{team} défend plus bas et laisse le ballon à {opp}.")},
     },
     "pressure_harder_season": {
         "en": {"analyst": ("{team}: pressing harder", "Pressures per min {pa} (was {pb}, season average {sa}). Line {la} m. Led by {leaders}."),
@@ -35,6 +45,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{team}: kõrgem press", "Survestusi minutis {pa} (enne {pb}, hooaja keskmine {sa}). Kaitseliin {la} m. Eestvedajad: {leaders}."),
                "fan": ("{team} pressib nüüd kõrgelt", "Rohkem kui tavalised {sa} survestust minutis. Eest veavad {leaders}."),
                "player_focus": ("{focus} veab pressi", "{focus}: {fn} survestust viimase 10 minutiga.")},
+        "de": {"analyst": ("{team}: mehr Pressing", "Pressingaktionen pro Min. {pa} (vorher {pb}, Saisonschnitt {sa}). Linie {la} m. Angeführt von {leaders}."),
+               "fan": ("{team} jagt den Ball", "Mehr als die üblichen {sa} Pressingaktionen pro Minute. {leaders} gehen voran."),
+               "player_focus": ("{focus} führt das Pressing an", "{focus} hat {fn} Pressingaktionen in den letzten 10 Minuten.")},
+        "fr": {"analyst": ("{team} : pressing plus fort", "Pressions par min {pa} (avant {pb}, moyenne de la saison {sa}). Ligne à {la} m. Menées par {leaders}."),
+               "fan": ("{team} chasse le ballon", "Plus que ses {sa} pressions par minute habituelles. {leaders} mènent la charge."),
+               "player_focus": ("{focus} mène le pressing", "{focus} compte {fn} pressions sur les 10 dernières minutes.")},
     },
     "decoy_run_season": {
         "en": {"analyst": ("Decoy run: {runner}", "Dragged {defender} ({pos}) {d} m. {benef} attacked the space{served}. Season decoy runs: {sd}{lead}."),
@@ -46,6 +62,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Petteliikumine: {runner}", "{defender} ({pos}) järgnes talle {d} m. {benef} ründas vabanenud ala{served}. Hooaja petteliikumisi: {sd}{lead}."),
                "fan": ("{runner} lõi ruumi ilma pallita", "Vastase {pos} järgnes jooksule {d} m. Hooaja {sd}. petteliikumine{lead}."),
                "player_focus": ("{runner}: nähtamatu töö", "Hooaja {sd}. petteliikumine{lead}. {pos} järgnes {d} m ja ruumi kasutas {benef}.")},
+        "de": {"analyst": ("Ablenkungslauf: {runner}", "Zog {defender} ({pos}) {d} m mit. {benef} stieß in den Raum{served}. Ablenkungsläufe in der Saison: {sd}{lead}."),
+               "fan": ("{runner} schafft Raum ohne Ball", "Der Lauf zog den {pos} von {opp} {d} m aus der Position. Ablenkungslauf Nummer {sd} in dieser Saison{lead}."),
+               "player_focus": ("{runner}: unsichtbare Arbeit", "Ablenkungslauf Nummer {sd} in dieser Saison{lead}. Der {pos} folgte {d} m und {benef} nutzte den Raum.")},
+        "fr": {"analyst": ("Appel leurre : {runner}", "A attiré {defender} ({pos}) sur {d} m. {benef} a attaqué l’espace{served}. Appels leurres cette saison : {sd}{lead}."),
+               "fan": ("{runner} crée de l’espace sans ballon", "Sa course a entraîné {defender} sur {d} m. Appel leurre numéro {sd} cette saison{lead}."),
+               "player_focus": ("{runner} : le travail invisible", "Appel leurre numéro {sd} cette saison{lead}. {defender} l’a suivi sur {d} m et {benef} a profité de l’espace.")},
     },
     "goal": {
         "en": {"analyst": ("Goal: {shooter}", "xG {xg}, {passes} in {sec} s. Goal number {sg} of the season for {shooter}."),
@@ -57,6 +79,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Värav: {shooter}", "xG {xg}, {passes} {sec} sekundiga. {shooter}: hooaja {sg}. värav."),
                "fan": ("{team} lööb värava: {shooter}", "{state} {shooter}: hooaja {sg}. värav."),
                "player_focus": ("{shooter} lööb värava", "Hooaja {sg}. värav võimalusest väärtusega {xg} xG.")},
+        "de": {"analyst": ("Tor: {shooter}", "xG {xg}, {passes} in {sec} s. Saisontor Nummer {sg} für {shooter}."),
+               "fan": ("Tor für {team}: {shooter}", "{state} Saisontor Nummer {sg} für {shooter}."),
+               "player_focus": ("{shooter} trifft", "Saisontor Nummer {sg}, aus einer Chance mit {xg} xG.")},
+        "fr": {"analyst": ("But : {shooter}", "xG {xg}, {passes} en {sec} s. But numéro {sg} de la saison pour {shooter}."),
+               "fan": ("But pour {team} : {shooter}", "{state} But numéro {sg} de la saison pour {shooter}."),
+               "player_focus": ("{shooter} marque", "But numéro {sg} cette saison, sur une occasion à {xg} xG.")},
     },
     "goal_solo": {
         "en": {"analyst": ("Goal: {shooter}", "xG {xg}, no passes: {sec} s from winning the ball to the goal. Season goal {sg}."),
@@ -68,6 +96,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Värav: {shooter}", "xG {xg}, söötudeta: {sec} sekundit palli võitmisest väravani. Hooaja {sg}. värav."),
                "fan": ("{team} lööb värava: {shooter}", "{state} Võitis palli, läks üksi ja lõi: hooaja {sg}. värav."),
                "player_focus": ("{shooter} lööb värava", "Hooaja {sg}. värav, üksinda {sec} sekundiga.")},
+        "de": {"analyst": ("Tor: {shooter}", "xG {xg}, ohne Pass: {sec} s vom Ballgewinn bis zum Tor. Saisontor {sg}."),
+               "fan": ("Tor für {team}: {shooter}", "{state} Ball erobert, allein durch, getroffen: Saisontor Nummer {sg}."),
+               "player_focus": ("{shooter} trifft", "Saisontor Nummer {sg}, ganz allein in {sec} Sekunden.")},
+        "fr": {"analyst": ("But : {shooter}", "xG {xg}, sans passe : {sec} s de la récupération au but. But {sg} de la saison."),
+               "fan": ("But pour {team} : {shooter}", "{state} Récupération, action solitaire, but : numéro {sg} de la saison."),
+               "player_focus": ("{shooter} marque", "But numéro {sg} cette saison, tout seul en {sec} secondes.")},
     },
     "goal_decoy": {
         "en": {"analyst": ("Goal: {shooter}", "xG {xg}. It started off the ball: {decoy} dragged {defender}. Goal number {sg} of the season."),
@@ -79,6 +113,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Värav: {shooter}", "xG {xg}. Algas ilma pallita: {defender} järgnes jooksjale {decoy}. Hooaja {sg}. värav."),
                "fan": ("{team} lööb värava: {shooter}", "{state} Hooaja {sg}. värav, tänu jooksjale {decoy}."),
                "player_focus": ("{shooter} lööb värava", "Hooaja {sg}. värav. {decoy} tõmbas petteliikumisega {defender} eest ära.")},
+        "de": {"analyst": ("Tor: {shooter}", "xG {xg}. Es begann ohne Ball: {decoy} zog {defender} mit. Saisontor Nummer {sg}."),
+               "fan": ("Tor für {team}: {shooter}", "{state} Saisontor Nummer {sg}, vorbereitet durch den Lauf von {decoy}."),
+               "player_focus": ("{shooter} trifft", "Saisontor Nummer {sg}. Der Ablenkungslauf von {decoy} zog {defender} aus dem Weg.")},
+        "fr": {"analyst": ("But : {shooter}", "xG {xg}. Tout est parti sans ballon : {decoy} a attiré {defender}. But numéro {sg} de la saison."),
+               "fan": ("But pour {team} : {shooter}", "{state} Numéro {sg} cette saison, rendu possible par l’appel de {decoy}."),
+               "player_focus": ("{shooter} marque", "But numéro {sg} cette saison. L’appel leurre de {decoy} a écarté {defender}.")},
     },
     "record_speed": {
         "en": {"analyst": ("Season best: {player} {v} km/h", "Top speed {v} km/h. Previous season best {pv} km/h."),
@@ -90,6 +130,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Hooaja tippmark: {player} {v} km/h", "Tippkiirus {v} km/h. Eelmine hooaja tippmark {pv} km/h."),
                "fan": ("{player} täiskiirusel", "{v} km/h: mängija {player} hooaja kiireim spurt."),
                "player_focus": ("Uus hooaja tippmark: {v} km/h", "{player} ületab hooaja tippmarki {pv} km/h.")},
+        "de": {"analyst": ("Saisonbestwert: {player} {v} km/h", "Höchsttempo {v} km/h. Bisheriger Saisonbestwert {pv} km/h."),
+               "fan": ("{player} mit Vollgas", "{v} km/h: der schnellste Sprint der Saison von {player}."),
+               "player_focus": ("Neuer Saisonbestwert: {v} km/h", "{player} übertrifft den Saisonbestwert von {pv} km/h.")},
+        "fr": {"analyst": ("Record de la saison : {player} {v} km/h", "Vitesse max {v} km/h. Précédent record de la saison {pv} km/h."),
+               "fan": ("{player} à pleine vitesse", "{v} km/h : le sprint le plus rapide de la saison de {player}."),
+               "player_focus": ("Nouveau record : {v} km/h", "{player} bat son record de la saison de {pv} km/h.")},
     },
     "record_speed_recent": {
         "en": {"analyst": ("{player}: {v} km/h", "Fastest sprint in {n} games (previous high {pv} km/h)."),
@@ -101,6 +147,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{player}: {v} km/h", "Kiireim spurt {n} mängu jooksul (eelmine tipp {pv} km/h)."),
                "fan": ("{player} lisab kiirust", "{v} km/h, viimase {n} mängu kiireim spurt."),
                "player_focus": ("{player}: {v} km/h", "Kiireim spurt {n} mängu jooksul. Eelmine tipp {pv} km/h.")},
+        "de": {"analyst": ("{player}: {v} km/h", "Schnellster Sprint seit {n} Spielen (bisheriger Höchstwert {pv} km/h)."),
+               "fan": ("{player} legt noch einen Gang zu", "{v} km/h, der schnellste Sprint der letzten {n} Spiele."),
+               "player_focus": ("{player}: {v} km/h", "Der schnellste Sprint seit {n} Spielen. Bisheriger Höchstwert {pv} km/h.")},
+        "fr": {"analyst": ("{player} : {v} km/h", "Sprint le plus rapide depuis {n} matchs (précédent sommet {pv} km/h)."),
+               "fan": ("{player} passe la vitesse supérieure", "{v} km/h, le sprint le plus rapide des {n} derniers matchs."),
+               "player_focus": ("{player} : {v} km/h", "Le sprint le plus rapide depuis {n} matchs. Précédent sommet {pv} km/h.")},
     },
     "standout": {
         "en": {"analyst": ("{player}: {cnt} {metric}", "Season average {avg} a game. Well above the usual pace."),
@@ -112,6 +164,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{player}: {cnt} {metric}", "Hooaja keskmine {avg} mängus. Tavalisest tempost tunduvalt üle."),
                "fan": ("{player} on igal pool", "Juba {cnt} {metric}. Tavalises mängus tuleb {avg}."),
                "player_focus": ("{player}: seni {cnt} {metric}", "Hooaja keskmine {avg} mängus. Tulemas on suur päev.")},
+        "de": {"analyst": ("{player}: {cnt} {metric}", "Saisonschnitt {avg} pro Spiel. Weit über dem üblichen Tempo."),
+               "fan": ("{player} ist überall", "Schon {cnt} {metric}. In einem normalen Spiel sind es {avg}."),
+               "player_focus": ("{player}: bisher {cnt} {metric}", "Saisonschnitt {avg} pro Spiel. Hier bahnt sich ein großer Tag an.")},
+        "fr": {"analyst": ("{player} : {cnt} {metric}", "Moyenne de la saison {avg} par match. Bien au-dessus du rythme habituel."),
+               "fan": ("{player} est partout", "Déjà {cnt} {metric}. Un match normal en compte {avg}."),
+               "player_focus": ("{player} : {cnt} {metric} pour l’instant", "Moyenne de la saison {avg} par match. Une grosse journée se prépare.")},
     },
     "standout_distance": {
         "en": {"analyst": ("{player}: {now} km covered", "Season average {avg} km a game. Well above the usual pace."),
@@ -123,6 +181,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{player}: {now} km läbitud", "Hooaja keskmine {avg} km mängus. Tavalisest tempost tunduvalt üle."),
                "fan": ("{player} ei peatu hetkekski", "Juba {now} km. Tavalises mängus tuleb {avg} km."),
                "player_focus": ("{player}: seni {now} km", "Hooaja keskmine {avg} km mängus. Tulemas on suur number.")},
+        "de": {"analyst": ("{player}: {now} km gelaufen", "Saisonschnitt {avg} km pro Spiel. Weit über dem üblichen Tempo."),
+               "fan": ("{player} läuft und läuft", "Schon {now} km. In einem normalen Spiel sind es {avg} km."),
+               "player_focus": ("{player}: bisher {now} km", "Saisonschnitt {avg} km pro Spiel. Auf Kurs für einen großen Tag.")},
+        "fr": {"analyst": ("{player} : {now} km parcourus", "Moyenne de la saison {avg} km par match. Bien au-dessus du rythme habituel."),
+               "fan": ("{player} ne s’arrête jamais", "Déjà {now} km. Un match normal en compte {avg} km."),
+               "player_focus": ("{player} : {now} km pour l’instant", "Moyenne de la saison {avg} km par match. En route pour une grosse journée.")},
     },
     "record_speed_league": {
         "en": {"analyst": ("League best: {player} {v} km/h", "The fastest sprint in the league this season. Previous best {lg} km/h."),
@@ -134,6 +198,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Liiga tippmark: {player} {v} km/h", "Liiga kiireim spurt sel hooajal. Eelmine tippmark {lg} km/h."),
                "fan": ("Keegi pole sel hooajal kiiremini jooksnud", "{player} jõudis {v} km/h, kiiremini kui keegi teine liigas."),
                "player_focus": ("{player}: liiga rekord {v} km/h", "Hooaja kiireim spurt kogu liigas. Eelmine tippmark {lg} km/h.")},
+        "de": {"analyst": ("Ligabestwert: {player} {v} km/h", "Der schnellste Sprint der Liga in dieser Saison. Bisheriger Bestwert {lg} km/h."),
+               "fan": ("Niemand war diese Saison schneller", "{player} erreicht gerade {v} km/h, schneller als jeder andere in der Liga."),
+               "player_focus": ("{player}: Ligarekord {v} km/h", "Der schnellste Sprint der ganzen Saison. Bisheriger Bestwert {lg} km/h.")},
+        "fr": {"analyst": ("Record du championnat : {player} {v} km/h", "Le sprint le plus rapide du championnat cette saison. Précédent record {lg} km/h."),
+               "fan": ("Personne n’a couru plus vite cette saison", "{player} vient d’atteindre {v} km/h, plus vite que quiconque en championnat."),
+               "player_focus": ("{player} : record du championnat à {v} km/h", "Le sprint le plus rapide de la saison. Précédent record {lg} km/h.")},
     },
     "record_decoys": {
         "en": {"analyst": ("{runner}: {n} decoy runs today", "More than in any game this season (previous best {pd}). Defenders keep following."),
@@ -145,6 +215,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{runner}: täna {n} petteliikumist", "Rohkem kui üheski hooaja mängus (eelmine tippmark {pd}). Kaitsjad järgnevad endiselt."),
                "fan": ("{runner} lõhub kaitset", "Juba {n} petteliikumist, hooaja parim tulemus ühes mängus."),
                "player_focus": ("{runner}: hooaja rekord, {n} petteliikumist", "Eelmine tippmark ühes mängus: {pd}. Kõik ilma pallita.")},
+        "de": {"analyst": ("{runner}: heute {n} Ablenkungsläufe", "Mehr als in jedem Saisonspiel (bisheriger Bestwert {pd}). Die Verteidiger folgen weiter."),
+               "fan": ("{runner} reißt sie auseinander", "Schon {n} Ablenkungsläufe, die meisten in einem Spiel in dieser Saison."),
+               "player_focus": ("{runner}: Saisonbestwert {n} Ablenkungsläufe", "Bisheriger Bestwert in einem Spiel: {pd}. Alles ohne Ball.")},
+        "fr": {"analyst": ("{runner} : {n} appels leurres aujourd’hui", "Plus que dans n’importe quel match cette saison (précédent record {pd}). Les défenseurs suivent toujours."),
+               "fan": ("{runner} les fait exploser", "Déjà {n} appels leurres, le plus en un match cette saison."),
+               "player_focus": ("{runner} : record de la saison, {n} appels leurres", "Précédent record en un match : {pd}. Tout ça sans ballon.")},
     },
     "preview": {
         "en": {"analyst": ("Preview: {team} v {opp}", "Form: {team} {hw} wins in {n}, {opp} {aw} in {n}. {star}: {sd} decoy runs this season{lead}."),
@@ -156,6 +232,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Eelvaade: {team} - {opp}", "Vorm: {team} {hw} võitu {n} mängust, {opp} {aw}. {star}: hooajal {sd} petteliikumist{lead}."),
                "fan": ("{team} - {opp}: seis enne mängu", "{team} on võitnud {hw} viimasest {n} mängust, {opp} {aw}. Jälgi mängijat {star}: hooajal {sd} petteliikumist{lead}."),
                "player_focus": ("{star}: jälgi teda", "Hooajal {sd} petteliikumist{lead}. Vaata, millist ruumi need jooksud teistele avavad.")},
+        "de": {"analyst": ("Vorschau: {team} gegen {opp}", "Form: {team} {hw} Siege aus {n}, {opp} {aw} aus {n}. {star}: {sd} Ablenkungsläufe in dieser Saison{lead}."),
+               "fan": ("{team} gegen {opp}: die Geschichte bisher", "{team} hat {hw} der letzten {n} Spiele gewonnen, {opp} {aw}. Achte auf {star}: {sd} Ablenkungsläufe in dieser Saison{lead}."),
+               "player_focus": ("{star}: einer zum Beobachten", "{sd} Ablenkungsläufe in dieser Saison{lead}. Achte auf den Raum, den diese Läufe für andere öffnen.")},
+        "fr": {"analyst": ("Avant-match : {team} contre {opp}", "Forme : {team} {hw} victoires sur {n}, {opp} {aw} sur {n}. {star} : {sd} appels leurres cette saison{lead}."),
+               "fan": ("{team} contre {opp} : l’histoire jusqu’ici", "{team} a gagné {hw} de ses {n} derniers matchs, {opp} {aw}. À suivre : {star}, {sd} appels leurres cette saison{lead}."),
+               "player_focus": ("{star} : un joueur à suivre", "{sd} appels leurres cette saison{lead}. Regarde l’espace que ces courses ouvrent pour les autres.")},
     },
     "preview_h2h": {
         "en": {"analyst": ("Preview: {team} v {opp}", "Last meeting {team} {lh}-{la} {opp}. Form: {team} {hw} wins in {n}, {opp} {aw}. {star}: {sd} decoy runs{lead}."),
@@ -167,6 +249,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Eelvaade: {team} - {opp}", "Eelmine kohtumine {team} {lh}-{la} {opp}. Vorm: {team} {hw} võitu {n} mängust, {opp} {aw}. {star}: {sd} petteliikumist{lead}."),
                "fan": ("{team} - {opp}: eelmine kord {lh}-{la}", "{team} on võitnud {hw} viimasest {n} mängust, {opp} {aw}. Jälgi mängijat {star}: hooajal {sd} petteliikumist{lead}."),
                "player_focus": ("{star}: jälgi teda", "Hooajal {sd} petteliikumist{lead}. Vaata, millist ruumi need jooksud teistele avavad.")},
+        "de": {"analyst": ("Vorschau: {team} gegen {opp}", "Letztes Duell {team} {lh}-{la} {opp}. Form: {team} {hw} Siege aus {n}, {opp} {aw}. {star}: {sd} Ablenkungsläufe{lead}."),
+               "fan": ("{team} gegen {opp}: zuletzt {lh}-{la}", "{team} hat {hw} der letzten {n} Spiele gewonnen, {opp} {aw}. Achte auf {star}: {sd} Ablenkungsläufe in dieser Saison{lead}."),
+               "player_focus": ("{star}: einer zum Beobachten", "{sd} Ablenkungsläufe in dieser Saison{lead}. Achte auf den Raum, den diese Läufe für andere öffnen.")},
+        "fr": {"analyst": ("Avant-match : {team} contre {opp}", "Dernier duel {team} {lh}-{la} {opp}. Forme : {team} {hw} victoires sur {n}, {opp} {aw}. {star} : {sd} appels leurres{lead}."),
+               "fan": ("{team} contre {opp} : {lh}-{la} la dernière fois", "{team} a gagné {hw} de ses {n} derniers matchs, {opp} {aw}. À suivre : {star}, {sd} appels leurres cette saison{lead}."),
+               "player_focus": ("{star} : un joueur à suivre", "{sd} appels leurres cette saison{lead}. Regarde l’espace que ces courses ouvrent pour les autres.")},
     },
     "decoy_run": {
         "en": {"analyst": ("Decoy run: {runner}", "Dragged {defender} ({pos}) {d} m. {benef} attacked the space{served}."),
@@ -178,6 +266,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Petteliikumine: {runner}", "{defender} ({pos}) järgnes talle {d} m. {benef} ründas vabanenud ala{served}."),
                "fan": ("{runner} lõi ruumi ilma pallita", "Vastase {pos} järgnes jooksule {d} m ja jättis ala tühjaks. {benef} jooksis sinna."),
                "player_focus": ("{runner}: nähtamatu töö", "Pallita, kuid {pos} järgnes jooksule {d} m ja ruum avanes. Kasu sai {benef}.")},
+        "de": {"analyst": ("Ablenkungslauf: {runner}", "Zog {defender} ({pos}) {d} m mit. {benef} stieß in den Raum{served}."),
+               "fan": ("{runner} schafft Raum ohne Ball", "Der Lauf zog den {pos} von {opp} {d} m aus der Position. {benef} stieß in die Lücke."),
+               "player_focus": ("{runner}: unsichtbare Arbeit", "Kein Ballkontakt, aber der Lauf zog den {pos} {d} m mit und öffnete Raum für {benef}.")},
+        "fr": {"analyst": ("Appel leurre : {runner}", "A attiré {defender} ({pos}) sur {d} m. {benef} a attaqué l’espace{served}."),
+               "fan": ("{runner} crée de l’espace sans ballon", "Sa course a entraîné {defender} sur {d} m. {benef} s’est engouffré dans la brèche."),
+               "player_focus": ("{runner} : le travail invisible", "Aucun ballon touché, mais sa course a entraîné {defender} sur {d} m et ouvert l’espace pour {benef}.")},
     },
     "chain_decoy": {
         "en": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} in {sec} s. It started off the ball: {decoy} dragged {defender}."),
@@ -189,6 +283,12 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} {sec} sekundiga. Algas ilma pallita: {defender} järgnes jooksjale {decoy}."),
                "fan": ("{outcome}: {shooter}", "{decoy} palli ei puudutanudki, kuid {defender} järgnes jooksule ja tee avanes."),
                "player_focus": ("{outcome}: {shooter}", "Võimaluse lõi jooks, mille tegi {decoy}. {defender} järgnes ja ruum avanes.")},
+        "de": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} in {sec} s. Es begann ohne Ball: {decoy} zog {defender} mit."),
+               "fan": ("{outcome}: {shooter}", "{decoy} hatte nie den Ball, aber der Lauf zog {defender} weg und öffnete den Weg."),
+               "player_focus": ("{outcome}: {shooter}", "Der Lauf von {decoy} hat diese Chance ermöglicht. {defender} folgte und der Raum ging auf.")},
+        "fr": {"analyst": ("{outcome} : {shooter}", "xG {xg}, {passes} en {sec} s. Tout est parti sans ballon : {decoy} a attiré {defender}."),
+               "fan": ("{outcome} : {shooter}", "{decoy} n’a jamais touché le ballon, mais sa course a écarté {defender} et ouvert la voie."),
+               "player_focus": ("{outcome} : {shooter}", "L’appel de {decoy} a créé cette occasion. {defender} a suivi et l’espace s’est ouvert.")},
     },
     "chain": {
         "en": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} in {sec} s."),
@@ -197,6 +297,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{outcome}: {shooter}", "{passes}, {sec} segundos, y {shooter} remata.")},
         "et": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} {sec} sekundiga."),
                "fan": ("{outcome}: {shooter}", "{passes}, {sec} sekundit ja {shooter} lööb.")},
+        "de": {"analyst": ("{outcome}: {shooter}", "xG {xg}, {passes} in {sec} s."),
+               "fan": ("{outcome}: {shooter}", "{passes}, {sec} Sekunden, und {shooter} kommt zum Abschluss.")},
+        "fr": {"analyst": ("{outcome} : {shooter}", "xG {xg}, {passes} en {sec} s."),
+               "fan": ("{outcome} : {shooter}", "{passes}, {sec} secondes, et {shooter} déclenche sa frappe.")},
     },
     "chain_solo": {
         "en": {"analyst": ("{outcome}: {shooter}", "xG {xg}, no passes: {sec} s from winning the ball to the shot."),
@@ -205,6 +309,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{outcome}: {shooter}", "La recuperó y se fue solo: {sec} segundos hasta el remate.")},
         "et": {"analyst": ("{outcome}: {shooter}", "xG {xg}, söötudeta: {sec} sekundit palli võitmisest löögini."),
                "fan": ("{outcome}: {shooter}", "Võitis palli ja läks üksi: {sec} sekundit löögini.")},
+        "de": {"analyst": ("{outcome}: {shooter}", "xG {xg}, ohne Pass: {sec} s vom Ballgewinn bis zum Schuss."),
+               "fan": ("{outcome}: {shooter}", "Ball erobert und allein durch: {sec} Sekunden bis zum Schuss.")},
+        "fr": {"analyst": ("{outcome} : {shooter}", "xG {xg}, sans passe : {sec} s de la récupération au tir."),
+               "fan": ("{outcome} : {shooter}", "Récupération et action solitaire : {sec} secondes jusqu’au tir.")},
     },
     "momentum_swing": {
         "en": {"analyst": ("Momentum: {team}", "Threat balance has swung to {team}. Drivers: {drivers}."),
@@ -213,6 +321,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{team} mandan ahora", "El partido ha girado a su favor en los últimos minutos.")},
         "et": {"analyst": ("Hoog: {team}", "Ohtlikkuse tasakaal on pöördunud. Peal on {team}. Põhjused: {drivers}."),
                "fan": ("{team} valitseb nüüd mängu", "Viimastel minutitel on mäng pöördunud nende kasuks.")},
+        "de": {"analyst": ("Momentum: {team}", "Die Gefahrenbilanz ist zu {team} gekippt. Treiber: {drivers}."),
+               "fan": ("{team} ist jetzt am Drücker", "Das Spiel ist in den letzten Minuten zu ihren Gunsten gekippt.")},
+        "fr": {"analyst": ("Élan : {team}", "Le rapport de danger a basculé vers {team}. Moteurs : {drivers}."),
+               "fan": ("{team} prend le dessus", "Le match a basculé en sa faveur ces dernières minutes.")},
     },
     "chaotic": {
         "en": {"analyst": ("Control lost: open game", "Possession changes {tpm} times a minute, {under}% of passes under pressure."),
@@ -221,6 +333,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("El partido se ha vuelto loco", "Nadie retiene el balón. Habrá ocasiones en las dos áreas.")},
         "et": {"analyst": ("Kontroll kadus: avatud mäng", "Pall vahetab omanikku {tpm} korda minutis, {under}% söötudest surve all."),
                "fan": ("Mäng on läinud kaootiliseks", "Keegi ei hoia palli kaua. Oodata on võimalusi mõlemas otsas.")},
+        "de": {"analyst": ("Kontrolle verloren: offenes Spiel", "Ballbesitz wechselt {tpm} Mal pro Minute, {under}% der Pässe unter Druck."),
+               "fan": ("Das ist jetzt Chaos", "Niemand kann den Ball lange halten. Chancen auf beiden Seiten sind zu erwarten.")},
+        "fr": {"analyst": ("Contrôle perdu : match ouvert", "Le ballon change de camp {tpm} fois par minute, {under} % des passes sous pression."),
+               "fan": ("Le match devient fou", "Personne ne garde le ballon longtemps. Attendez-vous à des occasions des deux côtés.")},
     },
     "in_control": {
         "en": {"analyst": ("{team} in control", "Control {ca} vs {cb}, possession {poss}%, territory {terr}%."),
@@ -229,6 +345,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{team} dominan", "{team} tienen el balón y encierran a {opp}.")},
         "et": {"analyst": ("{team} kontrollib mängu", "Kontroll {ca} vs {cb}, pallivaldamine {poss}%, territoorium {terr}%."),
                "fan": ("{team} juhib mängu", "{team} hoiab palli ja surub vastase tagasi.")},
+        "de": {"analyst": ("{team} hat die Kontrolle", "Kontrolle {ca} zu {cb}, Ballbesitz {poss}%, Territorium {terr}%."),
+               "fan": ("{team} gibt den Ton an", "{team} hat den Ball und drängt {opp} tief zurück.")},
+        "fr": {"analyst": ("{team} maîtrise", "Contrôle {ca} contre {cb}, possession {poss} %, territoire {terr} %."),
+               "fan": ("{team} mène la danse", "{team} a le ballon et maintient {opp} dans son camp.")},
     },
     "counter_press": {
         "en": {"analyst": ("Counter-press: {team}", "{n} players closed in, ball won back in {s} s."),
@@ -237,6 +357,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{team} la recuperan al instante", "La pierden, presionan y la recuperan en {s} segundos.")},
         "et": {"analyst": ("Vastupress: {team}", "{n} mängijat sulges ruumi, pall tagasi {s} sekundiga."),
                "fan": ("{team} võitis palli kohe tagasi", "Kaotasid, ründasid kohe ja võitsid tagasi {s} sekundiga.")},
+        "de": {"analyst": ("Gegenpressing: {team}", "{n} Spieler machten den Raum eng, Ball nach {s} s zurückerobert."),
+               "fan": ("{team} holt ihn sofort zurück", "Verloren, umzingelt, nach {s} Sekunden zurückerobert.")},
+        "fr": {"analyst": ("Contre-pressing : {team}", "{n} joueurs ont refermé l’espace, ballon récupéré en {s} s."),
+               "fan": ("{team} le récupère aussitôt", "Perdu, encerclé, récupéré en {s} secondes.")},
     },
     "gap_exploited": {
         "en": {"analyst": ("Gap between the lines", "{team} left {gap} m between their lines. {player} received in it."),
@@ -245,6 +369,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{opp} encuentran el hueco", "{player} recibió en el espacio entre las líneas de {team}.")},
         "et": {"analyst": ("Ruum liinide vahel", "{team} jättis liinide vahele {gap} m. Seal sai palli {player}."),
                "fan": ("Vastane leidis augu", "{player} sai palli vabast ruumist liinide vahel.")},
+        "de": {"analyst": ("Lücke zwischen den Ketten", "{team} ließ {gap} m zwischen den Ketten. {player} bekam dort den Ball."),
+               "fan": ("{opp} hat die Lücke gefunden", "{player} bekam den Ball im Raum zwischen den Ketten von {team}.")},
+        "fr": {"analyst": ("Espace entre les lignes", "{team} a laissé {gap} m entre ses lignes. {player} a reçu le ballon dans cet espace."),
+               "fan": ("{opp} a trouvé la faille", "{player} a reçu le ballon entre les lignes de {team}.")},
     },
     "overload": {
         "en": {"analyst": ("Overload: {team}", "{a} v {d} near the ball {side}."),
@@ -253,6 +381,10 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
                "fan": ("{team} tienen superioridad", "{a} contra {d} {side}. Atentos a esa zona.")},
         "et": {"analyst": ("Ülekaal: {team}", "Palli lähedal {a} vs {d}, {side}."),
                "fan": ("{team} on arvulises ülekaalus", "{a} {d} vastu, {side}. Jälgi seda ala.")},
+        "de": {"analyst": ("Überzahl: {team}", "{a} gegen {d} am Ball {side}."),
+               "fan": ("{team} ist in Überzahl", "{a} gegen {d} {side}. Achte auf diese Zone.")},
+        "fr": {"analyst": ("Supériorité : {team}", "{a} contre {d} près du ballon {side}."),
+               "fan": ("{team} a le surnombre", "{a} contre {d} {side}. Surveillez cette zone.")},
     },
     "fatigue": {
         "en": {"analyst": ("Fatigue: {player}", "High-intensity running {pct}% vs the first 15 min. Top speed {now} km/h (was {early})."),
@@ -264,32 +396,49 @@ T: dict[str, dict[str, dict[str, tuple[str, str]]]] = {
         "et": {"analyst": ("Väsimus: {player}", "Kiire jooks {pct}% võrreldes esimese 15 minutiga. Tippkiirus {now} km/h (enne {early})."),
                "fan": ("{player} väsib", "Spurtidest on jõud otsas. Vahetus võib tulla."),
                "player_focus": ("{player} väsib", "Tippkiirus nüüd {now} km/h, alguses {early}.")},
+        "de": {"analyst": ("Ermüdung: {player}", "Intensive Läufe {pct}% im Vergleich zu den ersten 15 Min. Höchsttempo {now} km/h (vorher {early})."),
+               "fan": ("{player} wird müde", "Die Sprints lassen nach. Ein Wechsel könnte kommen."),
+               "player_focus": ("{player} wird müde", "Höchsttempo jetzt {now} km/h, nach {early} zu Beginn.")},
+        "fr": {"analyst": ("Fatigue : {player}", "Courses à haute intensité à {pct} % par rapport aux 15 premières min. Vitesse max {now} km/h (avant {early})."),
+               "fan": ("{player} fatigue", "Les sprints s’essoufflent. Un changement pourrait arriver."),
+               "player_focus": ("{player} fatigue", "Vitesse max désormais {now} km/h, contre {early} en début de match.")},
     },
 }
 
 TAGS: dict[str, dict[str, str]] = {
-    "speed_tag": {"en": "{player} {v} km/h", "es": "{player} {v} km/h", "et": "{player} {v} km/h"},
+    "speed_tag": {"en": "{player} {v} km/h", "es": "{player} {v} km/h", "et": "{player} {v} km/h", "de": "{player} {v} km/h",
+                  "fr": "{player} {v} km/h"},
     "match_top_speed": {"en": "Fastest today: {player} {v} km/h", "es": "Más rápido hoy: {player} {v} km/h",
-                        "et": "Päeva kiireim: {player} {v} km/h"},
+                        "et": "Päeva kiireim: {player} {v} km/h", "de": "Schnellster heute: {player} {v} km/h",
+                        "fr": "Le plus rapide du jour : {player} {v} km/h"},
     "distance_milestone": {"en": "{player}: {km} km covered", "es": "{player}: {km} km recorridos",
-                           "et": "{player}: {km} km läbitud"},
+                           "et": "{player}: {km} km läbitud", "de": "{player}: {km} km gelaufen",
+                           "fr": "{player} : {km} km parcourus"},
     "shot_speed": {"en": "{player}: shot at {v} km/h", "es": "{player}: disparo a {v} km/h",
-                   "et": "{player}: löök {v} km/h"},
+                   "et": "{player}: löök {v} km/h", "de": "{player}: Schuss mit {v} km/h",
+                   "fr": "{player} : frappe à {v} km/h"},
     "difficult_pass": {"en": "{player}: pass difficulty {diff}/10, {m} m", "es": "{player}: pase de dificultad {diff}/10, {m} m",
-                       "et": "{player}: söödu raskus {diff}/10, {m} m"},
+                       "et": "{player}: söödu raskus {diff}/10, {m} m", "de": "{player}: Passschwierigkeit {diff}/10, {m} m",
+                       "fr": "{player} : passe de difficulté {diff}/10, {m} m"},
     "line_breaking_pass": {"en": "{player} breaks {n} lines", "es": "{player} rompe {n} líneas",
-                           "et": "{player} lõhub {n} liini"},
+                           "et": "{player} lõhub {n} liini", "de": "{player} überspielt {n} Linien",
+                           "fr": "{player} casse {n} lignes"},
     "recovery_run": {"en": "{player}: {m} m sprint back", "es": "{player}: {m} m de repliegue",
-                     "et": "{player}: {m} m tagasijooks"},
+                     "et": "{player}: {m} m tagasijooks", "de": "{player}: {m} m Sprint zurück",
+                     "fr": "{player} : {m} m de course de repli"},
 }
 
 OUTCOME = {"en": {"goal": "GOAL", "saved": "Saved", "blocked": "Blocked", "off_target": "Wide"},
            "es": {"goal": "GOL", "saved": "Parada", "blocked": "Bloqueado", "off_target": "Fuera"},
-           "et": {"goal": "VÄRAV", "saved": "Tõrje", "blocked": "Blokeeritud", "off_target": "Mööda"}}
+           "et": {"goal": "VÄRAV", "saved": "Tõrje", "blocked": "Blokeeritud", "off_target": "Mööda"},
+           "de": {"goal": "TOR", "saved": "Gehalten", "blocked": "Geblockt", "off_target": "Daneben"},
+           "fr": {"goal": "BUT", "saved": "Arrêt", "blocked": "Contré", "off_target": "À côté"}}
 
-PASSES = {"en": ("{n} pass", "{n} passes"), "es": ("{n} pase", "{n} pases"), "et": ("{n} sööt", "{n} söötu")}
+PASSES = {"en": ("{n} pass", "{n} passes"), "es": ("{n} pase", "{n} pases"), "et": ("{n} sööt", "{n} söötu"),
+          "de": ("{n} Pass", "{n} Pässe"), "fr": ("{n} passe", "{n} passes")}
 
-SERVED = {"en": " and got the ball", "es": " y recibió el balón", "et": " ja sai palli"}
+SERVED = {"en": " and got the ball", "es": " y recibió el balón", "et": " ja sai palli", "de": " und bekam den Ball",
+          "fr": " et a reçu le ballon"}
 
 DRIVER = {
     "en": {"pressure_shift": "pressing", "decoy_run": "decoy runs", "overload": "overloads", "counter_press": "counter-pressing",
@@ -301,6 +450,12 @@ DRIVER = {
     "et": {"pressure_shift": "press", "decoy_run": "petteliikumised", "overload": "ülekaal", "counter_press": "vastupress",
            "line_breaking_pass": "liine lõhkuvad söödud", "between_lines_gap": "ruum liinide vahel", "fatigue": "väsimus",
            "chain": "ohtlikud rünnakud"},
+    "de": {"pressure_shift": "Pressing", "decoy_run": "Ablenkungsläufe", "overload": "Überzahl", "counter_press": "Gegenpressing",
+           "line_breaking_pass": "linienbrechende Pässe", "between_lines_gap": "Raum zwischen den Ketten", "fatigue": "müde Beine",
+           "chain": "gefährliche Angriffe"},
+    "fr": {"pressure_shift": "pressing", "decoy_run": "appels leurres", "overload": "supériorités", "counter_press": "contre-pressing",
+           "line_breaking_pass": "passes qui cassent les lignes", "between_lines_gap": "espace entre les lignes",
+           "fatigue": "jambes lourdes", "chain": "attaques dangereuses"},
 }
 
 RECAP = {
@@ -310,14 +465,21 @@ RECAP = {
            "body": "{home} {hs}-{as_} {away}. xG {hx}-{ax}. Momentos clave: {moments}."},
     "et": {"half_time": "Poolaeg", "full_time": "Lõpuvile", "catch_up": "Kokkuvõte",
            "body": "{home} {hs}-{as_} {away}. xG {hx}-{ax}. Võtmehetked: {moments}."},
+    "de": {"half_time": "Halbzeit", "full_time": "Abpfiff", "catch_up": "Zusammenfassung",
+           "body": "{home} {hs}-{as_} {away}. xG {hx}-{ax}. Schlüsselmomente: {moments}."},
+    "fr": {"half_time": "Mi-temps", "full_time": "Fin du match", "catch_up": "Résumé",
+           "body": "{home} {hs}-{as_} {away}. xG {hx}-{ax}. Moments clés : {moments}."},
 }
 
-LEAD = {"en": ", the most in the league", "es": ", el que más en la liga", "et": ", liiga parim"}
+LEAD = {"en": ", the most in the league", "es": ", el que más en la liga", "et": ", liiga parim",
+        "de": ", die meisten der Liga", "fr": ", le plus du championnat"}
 
 METRIC = {
     "en": {"sprints": "sprints", "decoy_runs": "decoy runs", "pressures": "pressures"},
     "es": {"sprints": "sprints", "decoy_runs": "desmarques de arrastre", "pressures": "presiones"},
     "et": {"sprints": "spurti", "decoy_runs": "petteliikumist", "pressures": "survestust"},
+    "de": {"sprints": "Sprints", "decoy_runs": "Ablenkungsläufe", "pressures": "Pressingaktionen"},
+    "fr": {"sprints": "sprints", "decoy_runs": "appels leurres", "pressures": "pressions"},
 }
 
 STATE = {
@@ -327,4 +489,8 @@ STATE = {
            "level": "Empate: {gf}-{ga}.", "back": "{team} recortan: {gf}-{ga}."},
     "et": {"ahead": "{team} läheb juhtima: {gf}-{ga}.", "extends": "{team} suurendab edu: {gf}-{ga}.",
            "level": "Viik: {gf}-{ga}.", "back": "{team} vähendab vahet: {gf}-{ga}."},
+    "de": {"ahead": "{team} geht in Führung: {gf}-{ga}.", "extends": "{team} baut die Führung aus: {gf}-{ga}.",
+           "level": "Gleichstand: {gf}-{ga}.", "back": "{team} verkürzt: {gf}-{ga}."},
+    "fr": {"ahead": "{team} prend l’avantage : {gf}-{ga}.", "extends": "{team} creuse l’écart : {gf}-{ga}.",
+           "level": "Égalité : {gf}-{ga}.", "back": "{team} réduit l’écart : {gf}-{ga}."},
 }

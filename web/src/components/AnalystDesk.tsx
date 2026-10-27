@@ -309,7 +309,7 @@ export function AnalystDesk({ match, b, maps, s, lang }: { match: MatchDetail; b
       {live && <Rhythm match={match} data={live} feed={b.feed} s={s} />}
       {live && <LivePanel match={match} data={live} maps={maps} s={s} lang={lang} />}
       <div className="centre-grid">
-        <EventMaps match={match} now={b.now} maps={maps} s={s} />
+        <EventMaps match={match} now={b.now} maps={maps} s={s} lang={lang} />
         <LiveText match={match} now={b.now} feed={b.feed} s={s} lang={lang} />
       </div>
       <SeasonTable match={match} b={b} s={s} />

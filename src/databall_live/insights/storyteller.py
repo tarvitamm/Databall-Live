@@ -15,7 +15,7 @@ DECIMALS = {"pa": 1, "pb": 1, "la": 0, "lb": 0, "d": 0, "xg": 2, "sec": 0, "pass
             "ca": 0, "cb": 0, "poss": 0, "terr": 0, "n": 0, "s": 1, "gap": 0, "a": 0, "pct": 0, "now": 1,
             "early": 1, "fn": 0, "v": 1, "km": 0, "m": 0, "diff": 1, "pv": 1, "lg": 1, "sa": 1, "sd": 0, "sg": 0,
             "hw": 0, "aw": 0, "lh": 0, "pd": 0, "cnt": 0, "avg": 1, "gf": 0, "ga": 0}
-AND = {"en": "and", "es": "y", "et": "ja"}
+AND = {"en": "and", "es": "y", "et": "ja", "de": "und", "fr": "et"}
 
 
 @dataclass

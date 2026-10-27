@@ -1,6 +1,6 @@
 export type Mode = 'fan' | 'analyst' | 'player_focus'
 export type View = 'fan' | 'analyst' | 'player' | 'producer'
-export type Lang = 'en' | 'es' | 'et'
+export type Lang = 'en' | 'es' | 'de' | 'fr' | 'et'
 export type Density = 'low' | 'medium' | 'high'
 
 export interface Team {
