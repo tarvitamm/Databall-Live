@@ -9,7 +9,10 @@ and space, linked to the passes and shots they cause. Built for the Microsoft x 
 Try this: pick "Larkspur United v Harbour FC · The decoy", drag the timeline to the 40th minute and press play at 5x.
 On **Fan**, answer a live prediction and open Replay on a card; on **Analyst**, press "See it on the pitch"; switch
 to ES or ET; on **Producer**, switch to "Approve before air" or cut the model and watch templates keep airing. Each
-browser gets its own broadcast, so judges do not share a clock.
+browser gets its own broadcast, so judges do not share a clock. On the fan phone, **Match** has the live text and the
+shot, pass, dribble, decoy run, pressing, attack, duel and defending maps, **Fantasy** scores every player live (star your
+own players), and **Predict & win** ranks everyone in the room on the polls. The room is seeded with a simulated crowd, so
+a lone viewer still has rivals. On **Player**, the player cam follows the chosen player.
 
 ## How it answers the brief
 
@@ -18,8 +21,8 @@ browser gets its own broadcast, so judges do not share a clock.
 | (a) Ingest events as they happen | The live session plays each match on a clock and streams every pass, shot, tackle, recovery, pressure and possession change to the **Input** panel, beside the 22-player tracking on a 3D broadcast camera |
 | (b) Interpret into statistics and patterns | The stats engine (runs, decoys, pressing, gaps, overloads, chains, pitch control, xPass, xG) streams its detections next to the events; live pass accuracy, pass difficulty, ball and shot speed, sprints and distance; every match compared with the season so far |
 | (c) Explain why a moment matters | Foundry agents explain each moment with read-only stats and season tools, and every insight opens a 3D scene measured on the tracking: press density, support, block depth and open outlets, the decoy run and the space it opens, both defensive lines, the ball's path |
-| (d) Render on screen | Timed, machine-readable overlay packets (shown raw in the producer console), lower thirds, player tags, pass and shot cards, a clean overlay for OBS or vMix, and producer approval before air |
-| (e) Personalise | Fan, analyst, player focus and producer outputs, favourite club, followed player, a single followed metric, three languages, density, live predictions with points and streaks, replays and reposts |
+| (d) Render on screen | Live text commentary built from the events with the insights mixed in, event maps per team, timed, machine-readable overlay packets (shown raw in the producer console), lower thirds, player tags, pass and shot cards, a clean overlay for OBS or vMix, and producer approval before air |
+| (e) Personalise | Fan, analyst, player focus and producer outputs, favourite club, followed player with a player cam, a single followed metric, three languages, density, live fantasy points for your own players, yes or no polls settled by the match with a room leaderboard and club prizes, replays and reposts |
 | Player identification | Name tags on the camera, speed and distance tags when thresholds are crossed |
 | Pass quality and speed | Pass distance, accuracy and a 0 to 10 difficulty rating; ball and shot speed |
 | Narratives and recaps | Kick-off previews, season records, half-time standouts, goals with the season tally, half-time and full-time recaps, catch-up |
