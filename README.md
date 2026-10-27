@@ -4,6 +4,13 @@ Explainable match intelligence for the football the camera doesn't show: off-the
 and space, linked to the passes and shots they cause. Built for the Microsoft x Premier League
 *Inside the Game* hackathon. All data is synthetic and every club and player is fictional.
 
+**Live demo:** https://databall-live.purplegrass-00b787a0.swedencentral.azurecontainerapps.io
+
+Try this: pick "Larkspur United v Harbour FC · The decoy", drag the timeline to the 40th minute and press play at 5x.
+On **Fan**, answer a live prediction and open Replay on a card; on **Analyst**, press "See it on the pitch"; switch
+to ES or ET; on **Producer**, switch to "Approve before air" or cut the model and watch templates keep airing. Each
+browser gets its own broadcast, so judges do not share a clock.
+
 ## How it answers the brief
 
 | Brief | Where it lives |
@@ -189,6 +196,21 @@ or dark setting and has a switch for both.
 Each browser gets its own broadcast room, so viewers do not share a clock unless they share a `room` in the URL.
 `?view=overlay&room=<room>` is a transparent 1920 x 1080 overlay for OBS or vMix. For a single server, build the app
 with `npm --prefix web run build` and `databall-serve` serves `web/dist` itself on port 8000.
+
+## Deploy to Azure
+
+The app runs as one container on Azure Container Apps (one always-on replica, so live sessions and WebSockets stay
+on one process), pulled from Azure Container Registry. Its managed identity has Cognitive Services User on the
+Foundry resource, so there are no keys. The image carries the 12 analysed matches with their cached model answers,
+so a judge's broadcast costs almost nothing and only uncached moments call the model.
+
+```bash
+az acr login -n <registry>
+docker buildx build --platform linux/amd64 -t <registry>.azurecr.io/databall-live:v2 --push .
+az containerapp update -n databall-live -g <resource-group> --image <registry>.azurecr.io/databall-live:v2
+```
+
+The image is built locally because free-trial subscriptions cannot run ACR Tasks.
 
 ## Detection quality (12 simulated matches)
 

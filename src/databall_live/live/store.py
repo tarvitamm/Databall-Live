@@ -47,6 +47,9 @@ def _jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line] if path.exists() else []
 
 
+MAX_BUNDLES = 4
+
+
 class MatchStore:
     def __init__(self, root: Path) -> None:
         self.root = root
@@ -87,6 +90,8 @@ class MatchStore:
                         patterns=_jsonl(folder / "patterns.jsonl"), metrics=metrics, goals=goals, shots=shots,
                         period_bounds=bounds)
         self.cache[match_id] = bundle
+        while len(self.cache) > MAX_BUNDLES:
+            self.cache.pop(next(iter(self.cache)))
         return bundle
 
 

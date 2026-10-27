@@ -30,7 +30,7 @@ TRANSPORT = {"play", "pause", "speed", "seek"}
 CATCH_UP_GROUP = 18
 INGEST_SKIP = {"carry", "out_of_play", "half_start", "half_end"}
 GAINS = {"pass", "shot", "tackle", "interception", "ball_recovery"}
-MAX_SESSIONS = 8
+MAX_SESSIONS = 6
 MAX_ANALYSES = 4
 
 
